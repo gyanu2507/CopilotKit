@@ -140,12 +140,17 @@ window.addEventListener("message", async (event) => {
     const paths = [...surfaces].flatMap((element) => {
       const style = getComputedStyle(element);
       const rect = element.getBoundingClientRect();
+      // The intro starts at opacity 0 and animates without DOM mutations.
+      // Reserve the open HUD's full area before its first visible frame.
+      const openingHud =
+        element.matches(".cpk-launcher-hud") &&
+        element.closest('[data-cpk-hud="open"]');
       if (
         !rect.width ||
         !rect.height ||
         style.visibility === "hidden" ||
         style.display === "none" ||
-        style.opacity === "0"
+        (style.opacity === "0" && !openingHud)
       )
         return [];
       const pad = 24;

@@ -317,3 +317,34 @@ test("shares navigation and usable narrow layouts across both workbench pages", 
     page.getByRole("link", { name: "Scenarios", exact: true }),
   ).toHaveAttribute("aria-current", "page");
 });
+
+test("keeps the entire animated launcher intro inside the preview mask", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/notifications.html");
+  const preview = page.frameLocator("#preview-frame");
+  const hud = preview.locator('.cpk-launcher-hud[data-cpk-hud-intro="true"]');
+  await expect(hud).toBeVisible();
+  // Hit-test the parent at both edges: an iframe can report a visible child
+  // even when its clip-path cuts that child off from the actual page.
+  await expect
+    .poll(async () => {
+      const bounds = await hud.boundingBox();
+      if (!bounds) return false;
+      return page.evaluate(
+        ({ x, y, width, height }) =>
+          [x + 4, x + width - 4].every(
+            (left) =>
+              document.elementFromPoint(left, y + height / 2)?.id ===
+              "preview-frame",
+          ),
+        bounds,
+      );
+    })
+    .toBe(true);
+  await expect(hud).not.toBeVisible();
+  // Once the intro closes, the sidebar must be clickable again.
+  await page.locator("#new-notice").click();
+  await expect(page.locator('[name="title"]')).toBeVisible();
+});

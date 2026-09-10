@@ -221,8 +221,15 @@ summary {
   font-weight: 500;
 }
 #audience-selector {
-  display: grid;
-  gap: 8px;
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px solid #e8e8ef;
+}
+#audience-selector[open] > summary {
+  margin-bottom: 12px;
+}
+#audience-selector button {
+  margin: 8px 0;
 }
 #sample-cohort {
   margin: 0;
@@ -237,11 +244,40 @@ summary {
   grid-column: 1 / -1;
 }
 #delivery-panel {
-  background: #f6f5fb;
+  position: relative;
+  z-index: 1;
+  padding: 16px 20px;
+  background: #fff;
+  border-bottom: 1px solid #e8e8ef;
+}
+.result-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.result-heading h2 {
+  margin: 0;
+  color: #626170;
+  font-size: 12px;
+  font-weight: 500;
+}
+#working-draft {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 4px 0 12px;
+}
+#source-settings {
+  margin-top: 12px;
+}
+#match-details {
+  max-height: 240px;
+  overflow: auto;
 }
 #view-selected {
-  width: 100%;
-  margin-top: 12px;
+  flex-shrink: 0;
 }
 button.primary {
   background: #6750bf;
@@ -569,11 +605,6 @@ button.primary:hover:not(:disabled) {
 }
 #draft-error {
   margin: 0;
-}
-#working-title {
-  color: #282735;
-  font-weight: 600;
-  font-size: 14px;
 }
 @media (max-width: 760px) {
   #editor {

@@ -34,10 +34,34 @@
             <button id="replay" type="button">Replay</button>
           </div>
         </div>
-        <p class="stage-label">
-          Real Inspector · simulated client<br />Hover over the Inspector logo
-          to see the bubble.
-        </p>
+        <section id="delivery-panel">
+          <div class="result-heading">
+            <h2>Preview result</h2>
+            <button id="view-selected" class="primary">
+              Open notification
+            </button>
+          </div>
+          <div id="match-result" role="status"></div>
+          <details id="match-details">
+            <summary>Why this result?</summary>
+            <p id="client-summary" class="hint"></p>
+            <p class="hint">
+              One cohort must match in full. Blank client values are unknown;
+              prereleases never match.
+            </p>
+            <table id="audience-check">
+              <thead>
+                <tr>
+                  <th>Rule</th>
+                  <th>This client</th>
+                  <th>Result</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </details>
+        </section>
+        <p class="stage-label">Local simulation · nothing is published</p>
         <div class="frame-scroll">
           <iframe
             id="preview-frame"
@@ -50,15 +74,20 @@
         <section id="notifications-panel">
           <div id="library">
             <div class="section-heading">
-              <h2>1. Notification</h2>
+              <h2>Notification</h2>
               <button id="new-notice" class="text-button">New draft</button>
             </div>
             <select id="notice-list" aria-label="Notification"></select>
+            <div id="working-draft" hidden>
+              <span class="hint">Local draft · not in repository</span>
+              <button id="resume-draft" class="text-button">Edit draft</button>
+            </div>
             <p id="catalog-status" class="hint" role="status">
               Loading repository…
             </p>
+
             <details id="source-settings">
-              <summary>Source</summary>
+              <summary>Library source</summary>
               <div class="source-controls">
                 <label
                   >Load from<select id="catalog-source">
@@ -93,27 +122,11 @@
               ></textarea>
             </details>
           </div>
-          <div id="working-draft" hidden>
-            <div class="section-heading">
-              <h2>Working draft</h2>
-              <button id="resume-draft" class="text-button">Edit draft</button>
-            </div>
-            <p id="working-title"></p>
-            <p class="hint">Not saved to the repository yet.</p>
-            <button id="browse-notices" class="text-button">
-              Back to notifications
-            </button>
-          </div>
         </section>
         <section id="client-panel">
           <div class="section-heading">
-            <h2>2. Test client</h2>
+            <h2>Client</h2>
             <button id="reset-client" class="text-button">Reset</button>
-          </div>
-          <div id="audience-selector" hidden>
-            <label>Audience to test<select id="sample-cohort"></select></label>
-            <button id="load-matching-client">Use matching client</button>
-            <p id="sample-status" class="hint" role="status"></p>
           </div>
           <form id="client-form" class="client-form pair">
             <label
@@ -168,32 +181,12 @@
               </div>
             </details>
           </form>
-        </section>
-        <section id="delivery-panel">
-          <h2>3. Delivery</h2>
-          <div id="match-result" role="status"></div>
-          <details id="match-details">
-            <summary>Why this result?</summary>
-            <p id="client-summary" class="hint"></p>
-            <p class="hint">
-              One cohort must match in full. Blank client values are unknown;
-              prereleases never match.
-            </p>
-            <table id="audience-check">
-              <thead>
-                <tr>
-                  <th>Rule</th>
-                  <th>This client</th>
-                  <th>Result</th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
+          <details id="audience-selector" hidden>
+            <summary>Use a matching client</summary>
+            <label>Cohort<select id="sample-cohort"></select></label>
+            <button id="load-matching-client">Use matching client</button>
+            <p id="sample-status" class="hint" role="status"></p>
           </details>
-          <button id="view-selected" class="primary">Open notification</button>
-          <p class="hint">
-            Local preview. Each change resets read and dismissed state.
-          </p>
         </section>
       </aside>
     </main>

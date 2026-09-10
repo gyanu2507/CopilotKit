@@ -56,6 +56,8 @@ let catalog: NotificationCatalog = { feed: EMPTY, statuses: {}, source: "" };
 let selected: string | undefined;
 let savedCohorts: NotificationCohort[] | undefined;
 let editing = false;
+let hasWorkingDraft = false;
+const WORKING_DRAFT = "workbench:draft";
 let current: ReturnType<typeof compilePreview> | undefined;
 let previewFeed: NotificationFeed = EMPTY;
 let revision = 0;
@@ -87,7 +89,7 @@ function fill(values: AuthoringFields, form?: HTMLFormElement) {
 function setEditor(value: boolean) {
   openNoticeId = undefined;
   editing = value;
-  el("library").hidden = value;
+  if (value) hasWorkingDraft = true;
   el("working-draft").hidden = !value;
   if (value && !dialog.open) dialog.showModal();
   if (!value) dialog.close();
@@ -215,12 +217,12 @@ function validate() {
     copy.disabled = false;
     create.disabled = creating || !repositoryReady;
     prompt.value = current.prompt;
-    el("working-title").textContent = fields().title ?? "Untitled draft";
     el<HTMLButtonElement>("preview-draft").disabled = false;
     renderList();
     renderAudience();
   } catch (e) {
     current = undefined;
+    renderList();
     el<HTMLButtonElement>("preview-draft").disabled = true;
     renderAudience();
     el("draft-error").hidden = false;
@@ -258,6 +260,14 @@ function preview() {
 function renderList() {
   const list = el<HTMLSelectElement>("notice-list");
   list.replaceChildren(
+    ...(hasWorkingDraft
+      ? [
+          new Option(
+            `${fields().title || "Untitled"} · Local draft`,
+            WORKING_DRAFT,
+          ),
+        ]
+      : []),
     ...catalog.feed.notifications.map(
       (notice) =>
         new Option(
@@ -266,10 +276,16 @@ function renderList() {
         ),
     ),
   );
-  if (!catalog.feed.notifications.length)
-    list.add(new Option("No notifications", ""));
-  list.disabled = !catalog.feed.notifications.length;
-  list.value = selected ?? "";
+  if (!catalog.feed.notifications.length && !editing)
+    list.add(
+      new Option(
+        hasWorkingDraft ? "Choose a notification" : "No notifications",
+        "",
+      ),
+      0,
+    );
+  list.disabled = !catalog.feed.notifications.length && !hasWorkingDraft;
+  list.value = editing ? WORKING_DRAFT : (selected ?? "");
 }
 function previewTarget() {
   const feed = editing ? current?.feed : catalog.feed;
@@ -319,7 +335,7 @@ function renderAudience() {
     ? "Withdrawn. Duplicate it to test changes."
     : cohorts.length > 1
       ? "Choose a cohort to sample. Matching any one is enough."
-      : "Or edit the values below to test another client.";
+      : "Load example values that match this cohort.";
 }
 function showSelected() {
   el("sample-status").textContent = "";
@@ -383,8 +399,10 @@ try {
     typeof raw === "object" &&
     !Array.isArray(raw) &&
     Object.values(raw).every((v) => typeof v === "string")
-  )
+  ) {
     restored = { ...restored, ...raw };
+    hasWorkingDraft = true;
+  }
   const cohorts = JSON.parse(
     localStorage.getItem(`${STORAGE_KEY}:cohorts`) ?? "null",
   );
@@ -505,6 +523,7 @@ create.addEventListener("click", async () => {
     draftId = `notice-${crypto.randomUUID()}`;
     draftTimestamp = new Date().toISOString();
     source.value = "catalog";
+    hasWorkingDraft = false;
     setEditor(false);
     await loadCatalog();
     selected = saved.id;
@@ -617,16 +636,14 @@ el("load-matching-client").addEventListener("click", () => {
 
 el("notice-list").addEventListener("change", () => {
   openNoticeId = undefined;
-  selected = el<HTMLSelectElement>("notice-list").value;
+  const value = el<HTMLSelectElement>("notice-list").value;
+  editing = value === WORKING_DRAFT;
+  el("working-draft").hidden = !editing;
+  if (!editing) selected = value;
   showSelected();
   refresh();
 });
 
-function leaveDraft() {
-  setEditor(false);
-  showSelected();
-  refresh();
-}
 function closeDraft() {
   closeAudience();
   dialog.close();
@@ -650,7 +667,6 @@ dialog.addEventListener("cancel", (event) => {
   event.preventDefault();
   closeDraft();
 });
-el("browse-notices").addEventListener("click", leaveDraft);
 el("resume-draft").addEventListener("click", () => {
   refresh();
   dialog.showModal();

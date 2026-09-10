@@ -186,10 +186,21 @@ test("an invalid unfinished draft does not block saved notifications and withdra
   await page.locator("#new-notice").click();
   await page.locator('[name="title"]').fill("");
   await page.locator("#back-library").click();
-  await page.locator("#browse-notices").click();
+  await page.locator("#notice-list").selectOption("preview-notification");
   await expect(page.locator("#match-result")).toContainText(
     "Bubble: Update CopilotKit",
   );
+  await page.locator("#notice-list").selectOption("workbench:draft");
+  await expect(page.locator("#working-draft")).toBeVisible();
+  await expect(page.locator("#editor")).not.toBeVisible();
+  await expect(page.locator("#preview-frame")).toHaveAttribute(
+    "src",
+    "about:blank",
+  );
+  await page.locator("#resume-draft").click();
+  await expect(page.locator('[name="title"]')).toHaveValue("");
+  await page.locator("#back-library").click();
+  await page.locator("#notice-list").selectOption("preview-notification");
   const path = join(
     repository,
     "notifications/messages/preview-notification.md",
@@ -263,6 +274,7 @@ test("loads a matching audience and opens the exact notice without guessing clie
   await expect(page.locator("#view-selected")).toBeDisabled();
   await page.locator("#match-details > summary").click();
   await expect(page.locator("#audience-check")).toContainText("No match");
+  await page.locator("#audience-selector > summary").click();
   await page.locator("#load-matching-client").click();
   await expect(page.locator("#view-selected")).toBeEnabled();
   await expect(

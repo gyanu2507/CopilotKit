@@ -189,6 +189,7 @@ jobs:
           repository: ag-ui-protocol/ag-ui
           path: ag-ui
           ref: main
+          lfs: true
           persist-credentials: false
 
       - name: Set up Node.js

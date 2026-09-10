@@ -70,7 +70,7 @@ it("embeds a run id the CLI accepts", async () => {
   await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1));
 
   const copied = writeText.mock.calls[0][0] as string;
-  const runId = copied.match(/onboard start --run (\S+) --coding-agent/)?.[1];
+  const runId = copied.match(/onboard start --run (\S+)/)?.[1];
   expect(runId).toMatch(/^[A-Za-z0-9_-]{12}$/);
 });
 
@@ -97,9 +97,7 @@ it("copies the canonical prompt unchanged when no framework is given", async () 
   await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1));
 
   const copied = writeText.mock.calls[0][0] as string;
-  const runId = copied.match(
-    /onboard start --run (\S+) --coding-agent/,
-  )?.[1] as string;
+  const runId = copied.match(/onboard start --run (\S+)/)?.[1] as string;
   expect(copied).toBe(createIntelligenceOnboardingPrompt(runId));
   expect(copied.endsWith("until onboarding is complete.")).toBe(true);
 });
@@ -141,7 +139,7 @@ it("keeps the run id intact when the framework sentence is appended", async () =
   await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1));
 
   const copied = writeText.mock.calls[0][0] as string;
-  const runId = copied.match(/onboard start --run (\S+) --coding-agent/)?.[1];
+  const runId = copied.match(/onboard start --run (\S+)/)?.[1];
   expect(runId).toMatch(/^[A-Za-z0-9_-]{12}$/);
 });
 
@@ -197,9 +195,7 @@ it("stays canonical for a framework the onboarding graph does not cover", async 
   await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1));
 
   const copied = writeText.mock.calls[0][0] as string;
-  const runId = copied.match(
-    /onboard start --run (\S+) --coding-agent/,
-  )?.[1] as string;
+  const runId = copied.match(/onboard start --run (\S+)/)?.[1] as string;
   expect(copied).toBe(createIntelligenceOnboardingPrompt(runId));
 
   await waitFor(() => expect(analytics.capture).toHaveBeenCalledTimes(1));

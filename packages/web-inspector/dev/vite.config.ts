@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import type { Plugin, UserConfig } from "vite";
 
 import { createThreadsStateLabPlugin } from "./threads-state-lab-server.js";
+import { createNotificationAuthoringPlugin } from "./notification-authoring-server.js";
 import { createLearningStateLabPlugin } from "./learning-state-lab-server.js";
 
 /**
@@ -32,6 +33,7 @@ const cssRawImportPlugin = {
 const config = {
   plugins: [
     cssRawImportPlugin,
+    createNotificationAuthoringPlugin(),
     createThreadsStateLabPlugin(),
     createLearningStateLabPlugin(),
   ],

@@ -6,6 +6,7 @@ import {
 import type {
   NotificationContext,
   NotificationFeed,
+  NotificationCohort,
 } from "../src/lib/notifications.js";
 
 export type AuthoringFields = Record<string, string>;
@@ -95,7 +96,10 @@ export function presetFields(key: string): AuthoringFields {
   return { ...DEFAULT_FIELDS, ...PRESETS[key]?.fields };
 }
 
-export function compilePreview(fields: AuthoringFields): {
+export function compilePreview(
+  fields: AuthoringFields,
+  savedCohorts?: NotificationCohort[],
+): {
   feed: NotificationFeed;
   context: NotificationContext;
   result: ReturnType<typeof matchNotification>;
@@ -106,7 +110,7 @@ export function compilePreview(fields: AuthoringFields): {
   if (!fields.cohortName?.trim()) throw new Error("Name this cohort.");
   const conditions: Record<string, string> = {};
   for (const key of CONDITION_FIELDS) {
-    const value = fields[key]?.trim();
+    const value = savedCohorts ? undefined : fields[key]?.trim();
     if (value) conditions[key] = value;
   }
   for (const key of ["sdkVersion", "runtimeVersion"]) {
@@ -123,9 +127,9 @@ export function compilePreview(fields: AuthoringFields): {
     throw new Error("Priority override must be a nonnegative integer.");
   const feed = parseNotificationFeed({
     schemaVersion: 1,
-    cohorts: [
+    cohorts: savedCohorts ?? [
       {
-        id: "preview-cohort",
+        id: fields.id ? `${fields.id}-audience` : "preview-cohort",
         name: fields.cohortName.trim(),
         description: fields.cohortName.trim(),
         conditions,
@@ -133,11 +137,13 @@ export function compilePreview(fields: AuthoringFields): {
     ],
     notifications: [
       {
-        id: "preview-notification",
+        id: fields.id || "preview-notification",
         title: fields.title.trim(),
         body: fields.body,
-        publishedAt: "2026-09-01T12:00:00.000Z",
-        cohorts: ["preview-cohort"],
+        publishedAt: fields.publishedAt || "2026-09-01T12:00:00.000Z",
+        cohorts: savedCohorts?.map((c) => c.id) ?? [
+          fields.id ? `${fields.id}-audience` : "preview-cohort",
+        ],
         priority: fields.priority || "Normal",
         ...(override ? { priorityOverride: Number(override) } : {}),
       },
@@ -163,6 +169,17 @@ export function compilePreview(fields: AuthoringFields): {
     throw new Error("Choose a client framework.");
   if (!["", "enabled", "disabled"].includes(fields.clientIntelligence ?? ""))
     throw new Error("Choose the client's Intelligence state.");
+  for (const [key, allowed] of Object.entries({
+    clientDeployment: ["", "managed", "self-hosted"],
+    clientLicense: ["", "valid", "none", "expired", "expiring", "invalid"],
+  }))
+    if (!allowed.includes(fields[key] ?? ""))
+      throw new Error(`Invalid ${key}.`);
+  if (
+    fields.clientPlan?.trim() &&
+    !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(fields.clientPlan.trim())
+  )
+    throw new Error("Use a valid client plan code.");
   const context: NotificationContext = {
     development: true,
     sdkVersion: fields.clientSdkVersion.trim(),
@@ -184,7 +201,9 @@ export function compilePreview(fields: AuthoringFields): {
     "Use the author-notification skill in ~/Code/Intelligence to prepare a reviewable draft PR.",
     "Reuse a suitable cohort or create one with the exact conditions below. Conditions are AND; exclude prerelease SDK installations and never match unknown metadata to a required condition.",
     `Cohort name: ${cohort.name}`,
-    `Audience conditions (npm semver for version ranges):\n${JSON.stringify(conditions, null, 2)}`,
+    savedCohorts
+      ? `Match ANY of these cohorts; preserve their IDs and conditions:\n${JSON.stringify(savedCohorts, null, 2)}`
+      : `Audience conditions (npm semver for version ranges):\n${JSON.stringify(conditions, null, 2)}`,
     `Title (preserve exactly): ${notice.title}`,
     `Priority: ${notice.priority}${notice.priorityOverride === undefined ? "" : `; numeric override: ${notice.priorityOverride}`}`,
     `Markdown body (preserve exactly):\n${notice.body}`,

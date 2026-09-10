@@ -3805,6 +3805,9 @@ importers:
       ws:
         specifier: ^8.19.0
         version: 8.19.0
+      yaml:
+        specifier: ^2.9.0
+        version: 2.9.0
 
   showcase/angular:
     dependencies:

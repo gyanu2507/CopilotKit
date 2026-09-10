@@ -32,7 +32,10 @@ test("drafts a cohort, excludes unknown clients, and exports the exact authoring
 }) => {
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await page.goto("/notifications.html");
-  await expect(page.locator("#preview-status")).toHaveText("Ready to preview");
+  await expect(page.locator("#preview-frame")).toHaveAttribute(
+    "src",
+    "about:blank",
+  );
   await page.locator("#new-notice").click();
   await page.locator('[name="title"]').fill("Fix for Pro teams");
   await page.locator("#toggle-markdown").click();
@@ -89,7 +92,7 @@ test("drafts a cohort, excludes unknown clients, and exports the exact authoring
   );
 });
 
-test("preview dismissal is isolated and Replay re-arms the real bubble", async ({
+test("preview dismissal is isolated and another preview re-arms the real bubble", async ({
   page,
 }) => {
   await page.goto("/notifications.html");
@@ -99,7 +102,7 @@ test("preview dismissal is isolated and Replay re-arms the real bubble", async (
     localStorage.setItem("cpk:inspector:notifications:v1", "parent-state");
     document.cookie = "cpk_inspector_notifications_v1=parent-cookie; Path=/";
   });
-  await page.locator("#replay").click();
+  await page.locator("#view-selected").click();
   const preview = page.frameLocator("#preview-frame");
   await preview.locator(".console-button").hover();
   await preview
@@ -117,7 +120,7 @@ test("preview dismissal is isolated and Replay re-arms the real bubble", async (
   await page
     .getByRole("heading", { name: "Inspector workbench", exact: true })
     .hover();
-  await page.locator("#replay").click();
+  await page.locator("#view-selected").click();
   await preview.locator(".console-button").hover();
   await expect(
     preview.getByRole("button", {
@@ -228,8 +231,13 @@ test("preview follows the window viewport without clipping the launcher or block
 }) => {
   await page.setViewportSize({ width: 1035, height: 1040 });
   await page.goto("/notifications.html");
-  await expect(page.locator("#preview-status")).toHaveText("Ready to preview");
-  await page.locator("#replay").click();
+  await expect(page.locator("#preview-frame")).toHaveAttribute(
+    "src",
+    "about:blank",
+  );
+  await page.locator("#new-notice").click();
+  await page.locator("#back-library").click();
+  await page.locator("#view-selected").click();
   const preview = page.frameLocator("#preview-frame");
   const launcher = preview.locator(".console-button");
   const initial = await launcher.boundingBox();
@@ -238,7 +246,7 @@ test("preview follows the window viewport without clipping the launcher or block
   expect(initial!.y).toBeLessThan(30);
   await page.locator('[name="clientSdkVersion"]').fill("1.70.1");
   await page.locator("#preview-view").selectOption("updates");
-  await page.locator("#replay").click();
+  await page.locator("#view-selected").click();
   const window = preview.locator(".inspector-window");
   await expect(window).toBeVisible();
   await page.setViewportSize({ width: 1440, height: 1000 });
@@ -282,6 +290,7 @@ test("loads a matching audience and opens the exact notice without guessing clie
   ).not.toBeVisible();
   await expect(page.locator("#notice-list")).toBeVisible();
   await expect(page.locator("#client-form")).toBeVisible();
+  await page.locator("#preview-view").selectOption("updates");
   await page.locator("#view-selected").click();
   const preview = page.frameLocator("#preview-frame");
   await expect(
@@ -337,7 +346,9 @@ test("keeps the entire animated launcher intro inside the preview mask", async (
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/notifications.html");
   const preview = page.frameLocator("#preview-frame");
-  await page.locator("#replay").click();
+  await page.locator("#new-notice").click();
+  await page.locator("#back-library").click();
+  await page.locator("#view-selected").click();
   const hud = preview.locator('.cpk-launcher-hud[data-cpk-hud-intro="true"]');
   await expect(hud).toBeVisible();
   // Hit-test the parent at both edges: an iframe can report a visible child
@@ -464,4 +475,42 @@ test("edits audience without resizing the draft and dismisses back to the compos
       "about:blank",
     );
   }
+});
+
+test("reads a formatted notification without opening the Inspector or executing embedded HTML", async ({
+  page,
+}) => {
+  await page.goto("/notifications.html");
+  await page.locator("#new-notice").click();
+  await page.locator('[name="title"]').fill("Release notes");
+  await page.locator("#toggle-markdown").click();
+  await page
+    .locator('[name="body"]')
+    .fill(
+      "## Upgrade\n\nRead the **release notes**.\n\n```sh\nnpm update\n```\n\n[Unsafe](javascript:alert(1))\n\n<script>window.injected = true</script>",
+    );
+  await page.locator("#back-library").click();
+  await expect(page.locator("#selected-title")).toHaveText("Release notes");
+  await expect(page.locator("#selected-body h2")).toHaveText("Upgrade");
+  await expect(page.locator("#selected-body strong")).toHaveText(
+    "release notes",
+  );
+  await expect(page.locator("#selected-body pre code")).toContainText(
+    "npm update",
+  );
+  await expect(page.locator("#selected-body script")).toHaveCount(0);
+  await expect(page.locator("#selected-body a")).toHaveAttribute("href", "#");
+  await expect(page.locator("#preview-frame")).toHaveAttribute(
+    "src",
+    "about:blank",
+  );
+  await expect(page.locator("#match-result")).toContainText(
+    "Matches this client",
+  );
+  await page.locator('[name="clientIntelligence"]').selectOption("enabled");
+  await expect(page.locator("#match-result")).toContainText(
+    "This notification won't appear",
+  );
+  await expect(page.locator("#view-selected")).toBeDisabled();
+  await expect(page.locator("#selected-title")).toHaveText("Release notes");
 });

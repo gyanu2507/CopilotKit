@@ -1,4 +1,5 @@
 import { createNotificationEditor } from "./notification-editor.js";
+import { renderNotificationMarkdown } from "./notification-markdown.js";
 import { matchingClient, audienceRows } from "./notification-samples.js";
 import {
   compilePreview,
@@ -189,7 +190,19 @@ function validate() {
     );
     const result = el("match-result");
     result.replaceChildren();
-    result.dataset.matches = String(matching.length > 0);
+    const target = editing ? current.feed.notifications[0] : chosen;
+    const targetMatches =
+      !!target &&
+      catalog.statuses[target.id] !== "withdrawn" &&
+      matchNotification(target, previewFeed, current.context).matches;
+    result.dataset.matches = String(targetMatches);
+    const eligibility = document.createElement("strong");
+    eligibility.textContent = targetMatches
+      ? "Matches this client"
+      : target
+        ? "This notification won't appear"
+        : "Select a notification to test";
+    result.append(eligibility);
     const heading = document.createElement("strong");
     heading.textContent = winner
       ? `Bubble: ${winner.title}`
@@ -198,7 +211,6 @@ function validate() {
       heading,
       `${matching.length} matching update${matching.length === 1 ? "" : "s"} in What's New.`,
     );
-    const target = supplement.notifications[0];
     if (target) {
       const match = matchNotification(target, previewFeed, current.context);
       if (!match.matches) {
@@ -237,6 +249,41 @@ function validate() {
     frame.src = "about:blank";
     el("preview-status").textContent = "Fix the inputs to preview";
   }
+  renderDocument();
+}
+let renderedBody: string | undefined;
+function renderDocument() {
+  const notice = catalog.feed.notifications.find((n) => n.id === selected);
+  const hasDocument = editing || !!notice;
+  el("notification-document").hidden = !hasDocument;
+  el("document-empty").hidden = hasDocument;
+  if (!hasDocument) return;
+  const draft = fields();
+  el("selected-title").textContent = editing
+    ? draft.title || "Untitled draft"
+    : notice!.title;
+  el("selected-status").textContent = editing
+    ? "Local draft"
+    : `${catalog.statuses[notice!.id]}${catalog.statuses[notice!.id] === "withdrawn" ? " · excluded from delivery" : ""} · ${new Date(notice!.publishedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`;
+  el("document-audience").textContent = editing
+    ? el("draft-audience-summary").textContent
+    : catalog.feed.cohorts
+        .filter((c) => notice!.cohorts.includes(c.id))
+        .map(
+          (c) =>
+            `${c.name} (${Object.entries(c.conditions)
+              .map(
+                ([key, value]) =>
+                  `${key.replace(/([A-Z])/g, " $1").toLowerCase()}: ${value}`,
+              )
+              .join(" · ")})`,
+        )
+        .join(" or ");
+  const body = (editing ? draft.body : notice!.body) ?? "";
+  if (body !== renderedBody) {
+    el("selected-body").innerHTML = renderNotificationMarkdown(body);
+    renderedBody = body;
+  }
 }
 function refresh() {
   openNoticeId = undefined;
@@ -246,7 +293,11 @@ function refresh() {
   if (frame.getAttribute("src") !== "about:blank") frame.src = "about:blank";
   validate();
   save();
-  if (current) el("preview-status").textContent = "Ready to preview";
+  if (current)
+    el("preview-status").textContent = el<HTMLButtonElement>("view-selected")
+      .disabled
+      ? "Choose a matching client to preview."
+      : "Ready to preview";
 }
 function preview() {
   validate();
@@ -343,10 +394,6 @@ function showSelected() {
   const notice = catalog.feed.notifications.find((n) => n.id === selected);
   el("selected-notice").hidden = !notice || editing;
   if (!notice) return;
-  el("selected-title").textContent = notice.title;
-  el("selected-status").textContent =
-    `${catalog.statuses[notice.id]}${catalog.statuses[notice.id] === "withdrawn" ? " · excluded from delivery" : ""} · ${notice.id}`;
-  el("selected-body").textContent = notice.body;
   el("selected-conditions").textContent = JSON.stringify(
     catalog.feed.cohorts.filter((c) => notice.cohorts.includes(c.id)),
     null,
@@ -471,7 +518,6 @@ view.addEventListener("change", () => {
   openNoticeId = undefined;
   refresh();
 });
-el("replay").addEventListener("click", preview);
 source.addEventListener("change", loadCatalog);
 el("refresh-catalog").addEventListener("click", loadCatalog);
 copy.addEventListener("click", async () => {
@@ -615,7 +661,11 @@ function openSelected() {
   preview();
 }
 el("sample-cohort").addEventListener("change", renderAudience);
-el("view-selected").addEventListener("click", openSelected);
+el("view-selected").addEventListener("click", () => {
+  openNoticeId =
+    view.value === "updates" ? previewTarget().notice?.id : undefined;
+  preview();
+});
 el("load-matching-client").addEventListener("click", () => {
   const cohort = previewTarget().feed?.cohorts.find(
     (c) => c.id === el<HTMLSelectElement>("sample-cohort").value,

@@ -20,57 +20,7 @@
       </nav>
     </header>
     <main class="workspace">
-      <section class="preview inspector-stage" aria-label="Inspector preview">
-        <div class="stage-toolbar">
-          <div>
-            <h2>Inspector preview</h2>
-            <p id="preview-status" role="status">Loading preview…</p>
-          </div>
-          <div class="preview-tools">
-            <select id="preview-view" aria-label="Inspector view">
-              <option value="bubble">Notification bubble</option>
-              <option value="updates">What's New</option>
-            </select>
-            <button id="replay" type="button">Replay</button>
-          </div>
-        </div>
-        <section id="delivery-panel">
-          <div class="result-heading">
-            <h2>Preview result</h2>
-            <button id="view-selected" class="primary">
-              Open notification
-            </button>
-          </div>
-          <div id="match-result" role="status"></div>
-          <details id="match-details">
-            <summary>Why this result?</summary>
-            <p id="client-summary" class="hint"></p>
-            <p class="hint">
-              One cohort must match in full. Blank client values are unknown;
-              prereleases never match.
-            </p>
-            <table id="audience-check">
-              <thead>
-                <tr>
-                  <th>Rule</th>
-                  <th>This client</th>
-                  <th>Result</th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
-          </details>
-        </section>
-        <p class="stage-label">Local simulation · nothing is published</p>
-        <div class="frame-scroll">
-          <iframe
-            id="preview-frame"
-            title="Live notification in the Inspector"
-            src="about:blank"
-          ></iframe>
-        </div>
-      </section>
-      <aside class="sidebar console" aria-label="Notification workbench">
+      <section class="preview notification-reader" aria-label="Notification">
         <section id="notifications-panel">
           <div id="library">
             <div class="section-heading">
@@ -78,10 +28,6 @@
               <button id="new-notice" class="text-button">New draft</button>
             </div>
             <select id="notice-list" aria-label="Notification"></select>
-            <div id="working-draft" hidden>
-              <span class="hint">Local draft · not in repository</span>
-              <button id="resume-draft" class="text-button">Edit draft</button>
-            </div>
             <p id="catalog-status" class="hint" role="status">
               Loading repository…
             </p>
@@ -99,33 +45,58 @@
               </div>
               <p id="source-description" class="hint"></p>
             </details>
-            <details id="selected-notice" hidden>
-              <summary>Content &amp; PR handoff</summary>
-              <h2 id="selected-title"></h2>
-              <p id="selected-status" class="hint"></p>
-              <p id="selected-body"></p>
-              <details>
-                <summary>Cohort definitions</summary>
-                <pre id="selected-conditions"></pre>
-              </details>
-              <div class="actions">
-                <button id="duplicate-notice">Use as new draft</button>
-                <button id="copy-saved">Copy PR prompt</button>
-              </div>
-              <p id="saved-prompt-status" class="hint" role="status"></p>
-              <textarea
-                id="saved-prompt"
-                readonly
-                hidden
-                aria-label="Saved notification prompt"
-                rows="8"
-              ></textarea>
-            </details>
           </div>
         </section>
+        <article id="notification-document">
+          <header class="document-heading">
+            <p id="selected-status" class="hint"></p>
+            <h1 id="selected-title"></h1>
+            <div id="working-draft" hidden>
+              <span class="hint">Local draft · not in repository</span>
+              <button id="resume-draft" class="text-button">Edit draft</button>
+            </div>
+          </header>
+          <div class="document-audience">
+            <span>Audience</span>
+            <p id="document-audience"></p>
+          </div>
+          <div id="selected-body" class="notification-prose"></div>
+          <details id="selected-notice" hidden>
+            <summary>Source &amp; PR handoff</summary>
+            <details>
+              <summary>Cohort definitions</summary>
+              <pre id="selected-conditions"></pre>
+            </details>
+            <div class="actions">
+              <button id="duplicate-notice">Use as new draft</button>
+              <button id="copy-saved">Copy PR prompt</button>
+            </div>
+            <p id="saved-prompt-status" class="hint" role="status"></p>
+            <textarea
+              id="saved-prompt"
+              readonly
+              hidden
+              aria-label="Saved notification prompt"
+              rows="8"
+            ></textarea>
+          </details>
+        </article>
+        <div id="document-empty" hidden>
+          <h2>Select a notification</h2>
+          <p>Choose an existing update or create a draft.</p>
+        </div>
+        <div class="frame-scroll">
+          <iframe
+            id="preview-frame"
+            title="Live notification in the Inspector"
+            src="about:blank"
+          ></iframe>
+        </div>
+      </section>
+      <aside class="sidebar console" aria-label="Notification workbench">
         <section id="client-panel">
           <div class="section-heading">
-            <h2>Client</h2>
+            <h2>Test as</h2>
             <button id="reset-client" class="text-button">Reset</button>
           </div>
           <form id="client-form" class="client-form pair">
@@ -188,6 +159,39 @@
             <p id="sample-status" class="hint" role="status"></p>
           </details>
         </section>
+        <section id="delivery-panel">
+          <h2>Will this client see it?</h2>
+          <div id="match-result" role="status"></div>
+          <details id="match-details">
+            <summary>Why this result?</summary>
+            <p id="client-summary" class="hint"></p>
+            <p class="hint">
+              One cohort must match in full. Blank client values are unknown;
+              prereleases never match.
+            </p>
+            <table id="audience-check">
+              <thead>
+                <tr>
+                  <th>Rule</th>
+                  <th>This client</th>
+                  <th>Result</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </details>
+          <div class="preview-controls">
+            <select id="preview-view" aria-label="Inspector view">
+              <option value="bubble">Notification bubble</option>
+              <option value="updates">What's New</option>
+            </select>
+            <button id="view-selected" class="primary">
+              Preview in Inspector
+            </button>
+          </div>
+          <p id="preview-status" class="hint" role="status">Loading…</p>
+        </section>
+        <p class="simulation-note">Local simulation · nothing is published</p>
       </aside>
     </main>
     <dialog id="editor" aria-labelledby="draft-dialog-title">

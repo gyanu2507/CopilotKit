@@ -20,7 +20,7 @@ is a development tool, outside the published Inspector.
 - Select a notice to inspect its audience and preview it. **Use as new draft**
   preserves every selected cohort, including OR audiences. **Change audience**
   explicitly replaces those cohorts with one editable AND cohort.
-- **New** opens the browser's working draft. Enter a title and Markdown body;
+- **New draft** opens the browser's working draft. Enter a title and Markdown body;
   expand **Target audience** to set conditions. Templates fill notification fields
   without changing the test client. Blank audience fields mean unrestricted.
 - **Create draft** writes a new Markdown file and adds any new cohort to the
@@ -34,11 +34,23 @@ is a development tool, outside the published Inspector.
 
 ## Load a notice without guessing
 
-Select a notification, choose its **Preview audience**, then click **Load matching
-client & preview**. This fills the required version and metadata values and opens
-that exact notice in the real Inspector. The rule table explains each match or
-exclusion. **Preview current client** keeps your settings and is available when
-the notice matches. Withdrawn notices remain excluded.
+The sidebar follows three steps, all visible together:
+
+1. **Notification**: choose a saved notice. Expand **Source** to switch between
+   the repository and published feed. **Content & PR handoff** contains the
+   Markdown, cohort definitions, duplication, and prompt export.
+2. **Test client**: choose an **Audience to test**, then **Use matching client**
+   to fill a sample, or edit the client values yourself. Sampling updates the
+   preview without opening a pane or hiding the controls.
+3. **Delivery**: see the bubble winner and matching count. Expand **Why this
+   result?** for the rule-by-rule comparison. **Open notification** opens the
+   selected notice (or working draft) with your current client settings, and is
+   disabled if it doesn't match. Withdrawn notices remain excluded.
+
+**New draft** opens authoring in place of the saved-notice selector. Test client
+settings and delivery stay available while writing. **Inspector view** switches
+between the real bubble and What's New; **Replay** resets preview
+acknowledgements.
 
 Version samples satisfy npm semver but are simulated, not verified published npm
 releases. Ranges with no stable example report an error. For multiple cohorts,

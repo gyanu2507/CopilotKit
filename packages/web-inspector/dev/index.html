@@ -14,48 +14,50 @@
   <body>
     <header class="topbar">
       <div class="title">
-        <h1>Inspector state workbench</h1>
-        <p>50 local fixtures · no external Intelligence service</p>
-        <nav
-          aria-label="Workbench"
-          style="display: flex; gap: 16px; margin-top: 8px; font-size: 13px"
-        >
-          <a href="/" aria-current="page">Scenarios</a
-          ><a href="/notifications.html">Notifications</a>
-        </nav>
+        <h1>Inspector workbench</h1>
+        <p>Local development</p>
       </div>
-      <label>
-        <span class="field-label">Scenario</span>
-        <select id="scenario-select"></select>
-      </label>
-      <div>
-        <div class="actions">
-          <button id="copy-link" type="button">Copy direct link</button>
-          <button id="replay-notification" type="button">
-            Replay notification
-          </button>
-          <button id="reset-scenario" type="button">Reset</button>
-        </div>
-        <p id="action-status" class="status-line" aria-live="polite">
-          Loading the local fixture…
-        </p>
-      </div>
+      <nav class="workbench-nav" aria-label="Workbench">
+        <a href="/" aria-current="page">Scenarios</a
+        ><a href="/notifications.html">Notifications</a>
+      </nav>
     </header>
 
     <p id="route-alert" class="route-alert" role="alert" hidden></p>
 
     <main class="workspace">
       <section class="inspector-stage" aria-label="Actual Web Inspector">
-        <p class="stage-label">
-          This is the real <code>cpk-web-inspector</code> connected to the
-          selected loopback Runtime.
-        </p>
+        <div class="stage-toolbar">
+          <div>
+            <h2>Inspector preview</h2>
+            <p>Explore the selected scenario.</p>
+          </div>
+          <button id="open-inspector" type="button">Open Inspector</button>
+        </div>
+        <p class="stage-label">Real Inspector · local runtime</p>
         <div id="inspector-host"></div>
       </section>
 
       <aside class="console" aria-label="Scenario validation console">
         <section>
-          <h2>Notification</h2>
+          <div class="section-heading">
+            <h2>Scenario</h2>
+            <button id="reset-scenario" class="text-button" type="button">
+              Reset
+            </button>
+          </div>
+          <select id="scenario-select" aria-label="Scenario"></select>
+          <p id="scenario-description" class="hint"></p>
+          <button id="copy-link" type="button" class="text-button">
+            Copy scenario link
+          </button>
+          <p id="action-status" class="status-line" aria-live="polite">
+            Loading the local fixture…
+          </p>
+        </section>
+        <details>
+          <summary>Notification override</summary>
+          <p class="hint">Use Notifications to create and test cohorts.</p>
           <div
             id="notification-field"
             class="notification-field"
@@ -82,9 +84,13 @@
               </div>
             </div>
           </div>
-        </section>
+          <button id="replay-notification" type="button">
+            Replay notification
+          </button>
+        </details>
+
         <section>
-          <h2>Live state</h2>
+          <h2>Runtime</h2>
           <dl class="state-grid">
             <dt>Runtime</dt>
             <dd id="runtime-status">connecting</dd>
@@ -95,8 +101,8 @@
           </dl>
         </section>
 
-        <section>
-          <h2>Thread request ledger</h2>
+        <details>
+          <summary>Request checks</summary>
           <table>
             <thead>
               <tr>
@@ -145,15 +151,15 @@
               </tr>
             </tbody>
           </table>
-        </section>
+        </details>
 
-        <details open>
-          <summary>Normalized fixture</summary>
+        <details>
+          <summary>Scenario data</summary>
           <pre id="fixture-json" tabindex="0"></pre>
         </details>
 
         <details>
-          <summary>Chronological request log</summary>
+          <summary>Request log</summary>
           <ol id="request-log"></ol>
         </details>
       </aside>

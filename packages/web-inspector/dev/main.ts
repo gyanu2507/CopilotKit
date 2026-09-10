@@ -739,3 +739,8 @@ window.addEventListener(
 );
 
 boot().catch(reportFatalError);
+
+requiredElement("#open-inspector").addEventListener("click", () => {
+  inspector?.openInspector("floating_button");
+});
+requiredElement("#scenario-description").textContent = scenario.description;

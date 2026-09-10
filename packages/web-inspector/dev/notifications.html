@@ -11,35 +11,33 @@
   <body>
     <header class="topbar">
       <div class="title">
-        <h1>Inspector state workbench</h1>
-        <p>Notification cohorts · local preview</p>
-        <nav
-          aria-label="Workbench"
-          style="display: flex; gap: 16px; margin-top: 8px; font-size: 13px"
-        >
-          <a href="/">Scenarios</a
-          ><a href="/notifications.html" aria-current="page">Notifications</a>
-        </nav>
+        <h1>Inspector workbench</h1>
+        <p>Local development</p>
       </div>
-      <label
-        ><span class="field-label">View</span
-        ><select id="preview-view">
-          <option value="bubble">Notification bubble</option>
-          <option value="updates">What's New</option>
-        </select></label
-      >
-      <div class="actions">
-        <button id="copy-link" type="button">Copy direct link</button>
-        <button id="replay" type="button">Replay notification</button>
-        <button id="reset-client" type="button">Reset</button>
-      </div>
+      <nav class="workbench-nav" aria-label="Workbench">
+        <a href="/">Scenarios</a
+        ><a href="/notifications.html" aria-current="page">Notifications</a>
+      </nav>
     </header>
     <main class="workspace">
       <section class="preview inspector-stage" aria-label="Inspector preview">
-        <div class="stage-label">
-          This is the real <code>cpk-web-inspector</code><br />with simulated
-          notification cohorts.
+        <div class="stage-toolbar">
+          <div>
+            <h2>Inspector preview</h2>
+            <p id="preview-status" role="status">Loading preview…</p>
+          </div>
+          <div class="preview-tools">
+            <select id="preview-view" aria-label="Inspector view">
+              <option value="bubble">Notification bubble</option>
+              <option value="updates">What's New</option>
+            </select>
+            <button id="replay" type="button">Replay</button>
+          </div>
         </div>
+        <p class="stage-label">
+          Real Inspector · simulated client<br />Hover over the Inspector logo
+          to see the bubble.
+        </p>
         <div class="frame-scroll">
           <iframe
             id="preview-frame"
@@ -49,28 +47,51 @@
         </div>
       </section>
       <aside class="sidebar console" aria-label="Notification workbench">
-        <nav class="sidebar-tabs" aria-label="Sidebar">
-          <button id="notifications-tab" aria-pressed="true">
-            Notifications</button
-          ><button id="client-tab" aria-pressed="false">Test client</button>
-        </nav>
         <section id="notifications-panel">
           <div id="library">
             <div class="section-heading">
-              <h1>Notifications</h1>
-              <button id="new-notice" class="primary">New</button>
+              <h2>1. Notification</h2>
+              <button id="new-notice" class="text-button">New draft</button>
             </div>
-            <label
-              >Source<select id="catalog-source">
-                <option value="catalog">Repository</option>
-                <option value="published">Published feed</option>
-              </select></label
-            >
+            <select id="notice-list" aria-label="Notification"></select>
             <p id="catalog-status" class="hint" role="status">
               Loading repository…
             </p>
-            <div id="notice-list" aria-label="Existing notifications"></div>
-            <button id="refresh-catalog" class="text-button">Refresh</button>
+            <details id="source-settings">
+              <summary>Source</summary>
+              <div class="source-controls">
+                <label
+                  >Load from<select id="catalog-source">
+                    <option value="catalog">Repository</option>
+                    <option value="published">Published feed</option>
+                  </select></label
+                >
+                <button id="refresh-catalog">Refresh</button>
+              </div>
+              <p id="source-description" class="hint"></p>
+            </details>
+            <details id="selected-notice" hidden>
+              <summary>Content &amp; PR handoff</summary>
+              <h2 id="selected-title"></h2>
+              <p id="selected-status" class="hint"></p>
+              <p id="selected-body"></p>
+              <details>
+                <summary>Cohort definitions</summary>
+                <pre id="selected-conditions"></pre>
+              </details>
+              <div class="actions">
+                <button id="duplicate-notice">Use as new draft</button>
+                <button id="copy-saved">Copy PR prompt</button>
+              </div>
+              <p id="saved-prompt-status" class="hint" role="status"></p>
+              <textarea
+                id="saved-prompt"
+                readonly
+                hidden
+                aria-label="Saved notification prompt"
+                rows="8"
+              ></textarea>
+            </details>
           </div>
           <section id="editor" hidden>
             <button id="back-library" class="text-button">
@@ -216,55 +237,18 @@
               </details>
             </details>
           </section>
-          <section id="selected-notice" hidden>
-            <h2 id="selected-title"></h2>
-            <p id="selected-status" class="hint"></p>
-            <details>
-              <summary>Markdown source</summary>
-              <p id="selected-body"></p>
-            </details>
-            <label>Preview audience<select id="sample-cohort"></select></label>
-            <p class="hint">
-              Any one cohort can match. Every rule within it must match.
-            </p>
-            <table id="audience-check">
-              <thead>
-                <tr>
-                  <th>Rule</th>
-                  <th>This client</th>
-                  <th>Result</th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
-            <div class="actions preview-actions">
-              <button id="load-matching-client">
-                Load matching client &amp; preview</button
-              ><button id="view-selected">Preview current client</button>
-            </div>
-            <p id="sample-status" class="hint" role="status"></p>
-            <details>
-              <summary>Audience JSON</summary>
-              <pre id="selected-conditions"></pre>
-            </details>
-            <div class="actions">
-              <button id="duplicate-notice">Use as new draft</button
-              ><button id="copy-saved">Copy PR prompt</button>
-            </div>
-            <p id="saved-prompt-status" class="hint" role="status"></p>
-            <textarea
-              id="saved-prompt"
-              readonly
-              hidden
-              aria-label="Saved notification prompt"
-              rows="8"
-            ></textarea>
-          </section>
         </section>
-        <section id="client-panel" hidden>
-          <h1>Test client</h1>
-          <p>Change who is viewing the notifications.</p>
-          <form id="client-form" class="client-form">
+        <section id="client-panel">
+          <div class="section-heading">
+            <h2>2. Test client</h2>
+            <button id="reset-client" class="text-button">Reset</button>
+          </div>
+          <div id="audience-selector" hidden>
+            <label>Audience to test<select id="sample-cohort"></select></label>
+            <button id="load-matching-client">Use matching client</button>
+            <p id="sample-status" class="hint" role="status"></p>
+          </div>
+          <form id="client-form" class="client-form pair">
             <label
               >SDK version<input
                 name="clientSdkVersion"
@@ -289,7 +273,7 @@
               >Plan<input name="clientPlan" placeholder="Unknown" list="plans"
             /></label>
             <details class="client-more">
-              <summary>More client metadata</summary>
+              <summary>More settings</summary>
               <div class="detail-fields pair">
                 <label
                   >Runtime version<input
@@ -317,22 +301,31 @@
               </div>
             </details>
           </form>
-
-          <p class="hint">
-            Blank metadata is unknown. Prerelease SDKs never match.
-          </p>
         </section>
-        <section class="preview-heading">
-          <h2 id="preview-heading">Test result</h2>
-          <p id="client-summary" class="hint"></p>
+        <section id="delivery-panel">
+          <h2>3. Delivery</h2>
           <div id="match-result" role="status"></div>
-          <button id="edit-client">Test client</button>
-          <p id="preview-status" class="hint">Preview</p>
-        </section>
-        <section>
+          <details id="match-details">
+            <summary>Why this result?</summary>
+            <p id="client-summary" class="hint"></p>
+            <p class="hint">
+              One cohort must match in full. Blank client values are unknown;
+              prereleases never match.
+            </p>
+            <table id="audience-check">
+              <thead>
+                <tr>
+                  <th>Rule</th>
+                  <th>This client</th>
+                  <th>Result</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </details>
+          <button id="view-selected" class="primary">Open notification</button>
           <p class="hint">
-            Each preview starts with no read or dismissed notices. Active source
-            notices and the selected draft are included.
+            Local preview. Each change resets read and dismissed state.
           </p>
         </section>
       </aside>

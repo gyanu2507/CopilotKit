@@ -65,19 +65,12 @@ function fill(values: AuthoringFields, form?: HTMLFormElement) {
     >("[name]"))
       input.value = values[input.name] ?? "";
 }
-function tab(client: boolean) {
-  el("client-panel").hidden = !client;
-  el("notifications-panel").hidden = client;
-  el("client-tab").setAttribute("aria-pressed", String(client));
-  el("notifications-tab").setAttribute("aria-pressed", String(!client));
-}
 function setEditor(value: boolean) {
   openNoticeId = undefined;
   editing = value;
   el("library").hidden = value;
   el("editor").hidden = !value;
   el("selected-notice").hidden = value || !selected;
-  tab(false);
 }
 function audience() {
   el("audience-fields").hidden = !!savedCohorts;
@@ -209,34 +202,35 @@ function preview() {
   frame.src = `/notification-preview.html?revision=${++revision}`;
 }
 function renderList() {
-  const list = el("notice-list");
-  list.replaceChildren();
-  for (const n of catalog.feed.notifications) {
-    const button = document.createElement("button");
-    button.className = "notice-item";
-    button.setAttribute("aria-pressed", String(n.id === selected));
-    const title = document.createElement("strong");
-    title.textContent = n.title;
-    const meta = document.createElement("span");
-    const matches =
-      current && matchNotification(n, catalog.feed, current.context).matches;
-    meta.textContent = `${source.value === "published" ? "Published" : catalog.statuses[n.id]} · ${matches ? "Matches client" : "Does not match client"}`;
-    button.append(title, meta);
-    button.addEventListener("click", () => {
-      openNoticeId = undefined;
-      selected = n.id;
-      showSelected();
-      preview();
-    });
-    list.append(button);
-  }
+  const list = el<HTMLSelectElement>("notice-list");
+  list.replaceChildren(
+    ...catalog.feed.notifications.map(
+      (notice) =>
+        new Option(
+          `${notice.title} · ${catalog.statuses[notice.id]}`,
+          notice.id,
+        ),
+    ),
+  );
+  if (!catalog.feed.notifications.length)
+    list.add(new Option("No notifications", ""));
+  list.disabled = !catalog.feed.notifications.length;
+  list.value = selected ?? "";
+}
+function previewTarget() {
+  const feed = editing ? current?.feed : catalog.feed;
+  const notice = editing
+    ? feed?.notifications[0]
+    : feed?.notifications.find((n) => n.id === selected);
+  return { feed, notice };
 }
 function renderAudience() {
   const chooser = el<HTMLSelectElement>("sample-cohort");
-  const notice = catalog.feed.notifications.find((n) => n.id === selected);
-  const cohorts = catalog.feed.cohorts.filter((c) =>
-    notice?.cohorts.includes(c.id),
-  );
+  const { feed, notice } = previewTarget();
+  const cohorts =
+    feed?.cohorts.filter((c) => notice?.cohorts.includes(c.id)) ?? [];
+  el("audience-selector").hidden = !notice;
+  el("match-details").hidden = !notice;
   const previous = chooser.value;
   chooser.replaceChildren(...cohorts.map((c) => new Option(c.name, c.id)));
   if (cohorts.some((c) => c.id === previous)) chooser.value = previous;
@@ -264,12 +258,14 @@ function renderAudience() {
   const matches =
     !!notice &&
     !!current &&
-    matchNotification(notice, catalog.feed, current.context).matches;
+    matchNotification(notice, feed!, current.context).matches;
   el<HTMLButtonElement>("view-selected").disabled = !matches || withdrawn;
   el<HTMLButtonElement>("load-matching-client").disabled = !cohort || withdrawn;
-  if (withdrawn)
-    el("sample-status").textContent =
-      "Withdrawn notices are excluded. Use as new draft to preview changes.";
+  el("sample-status").textContent = withdrawn
+    ? "Withdrawn. Duplicate it to test changes."
+    : cohorts.length > 1
+      ? "Choose a cohort to sample. Matching any one is enough."
+      : "Or edit the values below to test another client.";
 }
 function showSelected() {
   el("sample-status").textContent = "";
@@ -296,6 +292,7 @@ async function request(path: string, init?: RequestInit) {
 async function loadCatalog() {
   const token = ++loading;
   el("catalog-status").textContent = "Loading…";
+  el("source-description").textContent = "";
   catalog = { feed: EMPTY, statuses: {}, source: "" };
   selected = undefined;
   showSelected();
@@ -309,8 +306,9 @@ async function loadCatalog() {
     if (source.value === "catalog") repositoryReady = true;
     el("catalog-status").textContent =
       source.value === "catalog"
-        ? `${feed.notifications.length} in this worktree. Active means configured, not verified published. ${value.source}`
-        : `${feed.notifications.length} published. Loaded from ${value.source}`;
+        ? `${feed.notifications.length} in repository · not verified published`
+        : `${feed.notifications.length} in published feed`;
+    el("source-description").textContent = value.source;
   } catch (e) {
     if (token !== loading) return;
     if (source.value === "catalog") repositoryReady = false;
@@ -347,9 +345,7 @@ draftTimestamp = restored.publishedAt || draftTimestamp;
 draftId = restored.id || draftId;
 fill(restored);
 audience();
-el("client-tab").addEventListener("click", () => tab(true));
-el("edit-client").addEventListener("click", () => tab(true));
-el("notifications-tab").addEventListener("click", () => tab(false));
+
 el("new-notice").addEventListener("click", () => {
   setEditor(true);
   audience();
@@ -478,8 +474,7 @@ create.addEventListener("click", async () => {
     selected = saved.id;
     showSelected();
     preview();
-    el("catalog-status").textContent =
-      `Draft created in this worktree. Not published. ${saved.path}`;
+    el("catalog-status").textContent = `Draft created · not published`;
   } catch (e) {
     el("save-status").textContent =
       e instanceof Error ? e.message : "Could not create draft.";
@@ -553,38 +548,35 @@ el("reset-client").addEventListener("click", () => {
   fill(DEFAULT_FIELDS, clientForm);
   preview();
 });
-el("copy-link").addEventListener("click", async () => {
-  try {
-    await navigator.clipboard.writeText(location.href);
-    el("preview-status").textContent =
-      "Link copied · draft and client settings stay in this browser";
-  } catch {
-    el("preview-status").textContent =
-      "Copy the page address to share this workbench.";
-  }
-});
 
 function openSelected() {
-  openNoticeId = selected;
+  openNoticeId = previewTarget().notice?.id;
   view.value = "updates";
   preview();
 }
 el("sample-cohort").addEventListener("change", renderAudience);
 el("view-selected").addEventListener("click", openSelected);
 el("load-matching-client").addEventListener("click", () => {
-  const cohort = catalog.feed.cohorts.find(
+  const cohort = previewTarget().feed?.cohorts.find(
     (c) => c.id === el<HTMLSelectElement>("sample-cohort").value,
   );
   if (!cohort) return;
   try {
     fill(matchingClient(cohort), clientForm);
-    el("sample-status").textContent =
-      `Loaded a sample client for ${cohort.name}. Change values in Test client to check exclusions.`;
-    openSelected();
+    openNoticeId = undefined;
+    preview();
+    el("sample-status").textContent = `Sample loaded for ${cohort.name}.`;
   } catch (error) {
     el("sample-status").textContent =
       error instanceof Error
         ? error.message
         : "Could not load a matching client.";
   }
+});
+
+el("notice-list").addEventListener("change", () => {
+  openNoticeId = undefined;
+  selected = el<HTMLSelectElement>("notice-list").value;
+  showSelected();
+  preview();
 });

@@ -43,12 +43,10 @@ test("drafts a cohort, excludes unknown clients, and exports the exact authoring
   await page.locator("#audience-fields > summary").click();
   await page.locator('[name="intelligence"]').selectOption("enabled");
   await page.locator('[name="plan"]').fill("pro");
-  await page.locator("#client-tab").click();
   await page.locator('[name="clientIntelligence"]').selectOption("enabled");
   await page.locator('[name="clientPlan"]').fill("pro");
-  await page.locator("#preview-view").selectOption("updates");
+  await page.locator("#view-selected").click();
   const preview = page.frameLocator("#preview-frame");
-  await preview.locator(".cpk-notification-row").click();
   await expect(
     preview.locator(".inspector-whats-new-document-header h1"),
   ).toHaveText("Fix for Pro teams");
@@ -61,7 +59,6 @@ test("drafts a cohort, excludes unknown clients, and exports the exact authoring
   await preview
     .getByRole("button", { name: "Close Web Inspector", exact: true })
     .click();
-  await page.locator("#notifications-tab").click();
   await page.locator(".handoff > summary").click();
   await page.locator("#copy-prompt").click();
   const prompt = await page.evaluate(() => navigator.clipboard.readText());
@@ -71,7 +68,6 @@ test("drafts a cohort, excludes unknown clients, and exports the exact authoring
     "## Upgrade\n\nRun `npm update` and read the **release notes**.",
   );
   expect(prompt).toContain("author-notification");
-  await page.locator("#client-tab").click();
   await page.locator('[name="clientIntelligence"]').selectOption("");
   await expect(page.locator("#match-result")).toContainText(
     "intelligence is unknown",
@@ -119,7 +115,7 @@ test("preview dismissal is isolated and Replay re-arms the real bubble", async (
   );
   // The real viewport HUD can overlap the toolbar until the pointer leaves it.
   await page
-    .getByRole("heading", { name: "Inspector state workbench", exact: true })
+    .getByRole("heading", { name: "Inspector workbench", exact: true })
     .hover();
   await page.locator("#replay").click();
   await preview.locator(".console-button").hover();
@@ -143,15 +139,12 @@ test("creates a repository draft and previews it with independent client setting
   const catalog = await readCatalog(repository);
   expect(catalog.feed.notifications).toHaveLength(1);
   expect(Object.values(catalog.statuses)).toEqual(["draft"]);
-  await page.locator("#client-tab").click();
   await page.locator('[name="clientSdkVersion"]').fill("2.0.0");
   await expect(page.locator("#match-result")).toContainText("No notification");
-  await page.locator("#notifications-tab").click();
+  await page.locator("#selected-notice > summary").click();
   await page.locator("#duplicate-notice").click();
   await page.locator("#preset").selectOption("pro");
-  await page.locator("#client-tab").click();
   await expect(page.locator('[name="clientSdkVersion"]')).toHaveValue("2.0.0");
-  await page.locator("#notifications-tab").click();
   await page.locator('[name="title"]').fill("");
   await expect(page.locator("#create-draft")).toBeDisabled();
   await expect(page.locator("#preview-frame")).toHaveAttribute(
@@ -170,11 +163,13 @@ test("reports unavailable published feeds without showing repository drafts as p
     }),
   );
   await page.goto("/notifications.html");
+  await page.locator("#source-settings > summary").click();
   await page.locator("#catalog-source").selectOption("published");
   await expect(page.locator("#catalog-status")).toContainText(
     "unavailable (HTTP 404)",
   );
-  await expect(page.locator(".notice-item")).toHaveCount(0);
+  await expect(page.locator("#notice-list")).toBeDisabled();
+  await expect(page.locator("#notice-list")).toContainText("No notifications");
 });
 
 test("an invalid unfinished draft does not block saved notifications and withdrawn notices stay quiet", async ({
@@ -206,6 +201,7 @@ test("an invalid unfinished draft does not block saved notifications and withdra
       '"status": "withdrawn"',
     ),
   );
+  await page.locator("#source-settings > summary").click();
   await page.locator("#refresh-catalog").click();
   await expect(page.locator("#selected-status")).toContainText(
     "excluded from delivery",
@@ -229,7 +225,6 @@ test("preview follows the window viewport without clipping the launcher or block
   expect(initial!.x + initial!.width).toBeLessThan(1035);
   expect(initial!.x).toBeGreaterThan(900);
   expect(initial!.y).toBeLessThan(30);
-  await page.locator("#client-tab").click();
   await page.locator('[name="clientSdkVersion"]').fill("1.70.1");
   await page.locator("#preview-view").selectOption("updates");
   const window = preview.locator(".inspector-window");
@@ -244,7 +239,6 @@ test("preview follows the window viewport without clipping the launcher or block
   await preview
     .getByRole("button", { name: "Close Web Inspector", exact: true })
     .click();
-  await page.locator("#notifications-tab").click();
   await page.locator("#new-notice").click();
   await expect(page.locator('[name="title"]')).toBeVisible();
 });
@@ -266,8 +260,16 @@ test("loads a matching audience and opens the exact notice without guessing clie
   await createDraft(repository, feed);
   await page.goto("/notifications.html");
   await expect(page.locator("#view-selected")).toBeDisabled();
+  await page.locator("#match-details > summary").click();
   await expect(page.locator("#audience-check")).toContainText("No match");
   await page.locator("#load-matching-client").click();
+  await expect(page.locator("#view-selected")).toBeEnabled();
+  await expect(
+    page.frameLocator("#preview-frame").locator(".inspector-window"),
+  ).not.toBeVisible();
+  await expect(page.locator("#notice-list")).toBeVisible();
+  await expect(page.locator("#client-form")).toBeVisible();
+  await page.locator("#view-selected").click();
   const preview = page.frameLocator("#preview-frame");
   await expect(
     preview.locator(".inspector-whats-new-document-header h1"),
@@ -279,11 +281,39 @@ test("loads a matching audience and opens the exact notice without guessing clie
     .getByRole("button", { name: "Close Web Inspector", exact: true })
     .click();
   await expect(page.locator("#audience-check")).not.toContainText("No match");
-  await page.locator("#client-tab").click();
   await expect(page.locator('[name="clientSdkVersion"]')).toHaveValue("1.69.0");
   await expect(page.locator('[name="clientFramework"]')).toHaveValue("angular");
   await expect(page.locator('[name="clientIntelligence"]')).toHaveValue(
     "enabled",
   );
   await expect(page.locator('[name="clientPlan"]')).toHaveValue("pro");
+});
+
+test("shares navigation and usable narrow layouts across both workbench pages", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=pro-enabled-existing");
+  await expect(page.locator("html")).toHaveAttribute("data-ready", "true");
+  await page
+    .getByRole("button", { name: "Close Web Inspector", exact: true })
+    .click();
+  await page.locator("#open-inspector").click();
+  await expect(page.locator(".inspector-window")).toBeVisible();
+  await page
+    .getByRole("button", { name: "Close Web Inspector", exact: true })
+    .click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator("#scenario-select")).toBeInViewport();
+  await page.getByRole("link", { name: "Notifications", exact: true }).click();
+  await expect(page.locator("#notice-list")).toBeInViewport();
+  await expect(
+    page.getByRole("link", { name: "Notifications", exact: true }),
+  ).toHaveAttribute("aria-current", "page");
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth),
+  ).toBeLessThanOrEqual(390);
+  await page.getByRole("link", { name: "Scenarios", exact: true }).click();
+  await expect(
+    page.getByRole("link", { name: "Scenarios", exact: true }),
+  ).toHaveAttribute("aria-current", "page");
 });

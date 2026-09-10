@@ -32,6 +32,19 @@ is a development tool, outside the published Inspector.
   cohorts to `author-notification` in Intelligence. After saving, use **Copy PR prompt** on the selected notice to hand over its existing ID and cohorts. The agent reuses those files and prepares the validation report and PR. Review the Git
   diff before merging. Creation itself does not invoke an agent or create a PR.
 
+## Load a notice without guessing
+
+Select a notification, choose its **Preview audience**, then click **Load matching
+client & preview**. This fills the required version and metadata values and opens
+that exact notice in the real Inspector. The rule table explains each match or
+exclusion. **Preview current client** keeps your settings and is available when
+the notice matches. Withdrawn notices remain excluded.
+
+Version samples satisfy npm semver but are simulated, not verified published npm
+releases. Ranges with no stable example report an error. For multiple cohorts,
+choose which OR branch to simulate; the notification itself keeps every cohort.
+The bubble winner still reflects all active source notices and priority.
+
 ## Test a client
 
 The **Test client** sidebar controls SDK version, framework, Intelligence, plan,

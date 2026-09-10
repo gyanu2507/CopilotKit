@@ -223,8 +223,28 @@
               <summary>Markdown source</summary>
               <p id="selected-body"></p>
             </details>
+            <label>Preview audience<select id="sample-cohort"></select></label>
+            <p class="hint">
+              Any one cohort can match. Every rule within it must match.
+            </p>
+            <table id="audience-check">
+              <thead>
+                <tr>
+                  <th>Rule</th>
+                  <th>This client</th>
+                  <th>Result</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+            <div class="actions preview-actions">
+              <button id="load-matching-client">
+                Load matching client &amp; preview</button
+              ><button id="view-selected">Preview current client</button>
+            </div>
+            <p id="sample-status" class="hint" role="status"></p>
             <details>
-              <summary>Audience</summary>
+              <summary>Audience JSON</summary>
               <pre id="selected-conditions"></pre>
             </details>
             <div class="actions">

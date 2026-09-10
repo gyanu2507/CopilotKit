@@ -12775,6 +12775,7 @@ export class WebInspectorElement extends LitElement {
                               <button
                                 type="button"
                                 class="cpk-notification-row"
+                                data-notification-id=${notice.id}
                                 @click=${() => this.readNotification(notice.id)}
                               >
                                 <span class="cpk-notification-copy">

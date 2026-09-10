@@ -205,3 +205,37 @@ summary {
     max-height: none;
   }
 }
+
+#sample-cohort {
+  margin-top: 4px;
+}
+#audience-check {
+  margin: 12px 0;
+  table-layout: fixed;
+}
+#audience-check th,
+#audience-check td {
+  text-align: left;
+  overflow-wrap: anywhere;
+  vertical-align: top;
+}
+#audience-check th:first-child {
+  width: 43%;
+}
+#audience-check th:last-child {
+  width: 23%;
+}
+#audience-check td small {
+  display: block;
+  font-size: 11px;
+  color: #48636f;
+}
+#audience-check [data-match="true"] {
+  color: #087653;
+}
+#audience-check [data-match="false"] {
+  color: #8a5700;
+}
+.preview-actions {
+  justify-content: flex-start;
+}

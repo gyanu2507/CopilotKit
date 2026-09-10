@@ -1,7 +1,10 @@
 import { CopilotKitCore } from "@copilotkit/core";
 import { WEB_INSPECTOR_TAG } from "@copilotkit/web-inspector";
 import type { WebInspectorElement } from "@copilotkit/web-inspector";
-import { parseNotificationFeed } from "../src/lib/notifications.js";
+import {
+  parseNotificationFeed,
+  matchNotification,
+} from "../src/lib/notifications.js";
 import { NOTIFICATION_FEED_URL } from "../src/lib/notification-loader.js";
 
 // Keep preview dismissals and layout isolated from the parent workbench.
@@ -101,6 +104,29 @@ window.addEventListener("message", async (event) => {
       )
       ?.click();
   }
+  let openedRequestedNotice = false;
+  const requested = feed.notifications.find(
+    (n) => n.id === event.data.notificationId,
+  );
+  const openRequested = () => {
+    if (
+      openedRequestedNotice ||
+      !requested ||
+      event.data.view !== "updates" ||
+      !matchNotification(requested, feed, event.data.context).matches
+    )
+      return;
+    const row = [
+      ...inspector.shadowRoot!.querySelectorAll<HTMLButtonElement>(
+        ".cpk-notification-row",
+      ),
+    ].find((element) => element.dataset.notificationId === requested.id);
+    if (row) {
+      openedRequestedNotice = true;
+      row.click();
+    }
+  };
+  openRequested();
   // Clip the transparent iframe to visible Inspector surfaces, while preserving
   // its full-window coordinate system and isolated notification storage.
   let scheduled = false;
@@ -138,7 +164,10 @@ window.addEventListener("message", async (event) => {
       requestAnimationFrame(publishBounds);
     }
   };
-  const observer = new MutationObserver(scheduleBounds);
+  const observer = new MutationObserver(() => {
+    openRequested();
+    scheduleBounds();
+  });
   observer.observe(inspector.shadowRoot!, {
     subtree: true,
     attributes: true,

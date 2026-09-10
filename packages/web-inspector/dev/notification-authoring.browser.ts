@@ -248,3 +248,42 @@ test("preview follows the window viewport without clipping the launcher or block
   await page.locator("#new-notice").click();
   await expect(page.locator('[name="title"]')).toBeVisible();
 });
+
+test("loads a matching audience and opens the exact notice without guessing client settings", async ({
+  page,
+}) => {
+  const { compilePreview, DEFAULT_FIELDS } =
+    await import("./notification-authoring.js");
+  const feed = compilePreview({
+    ...DEFAULT_FIELDS,
+    title: "Fix for Angular Pro",
+    sdkVersion: "1.69.0",
+    framework: "angular",
+    intelligence: "enabled",
+    plan: "pro",
+    body: "## Apply the fix\n\nRun `npm update`.",
+  }).feed;
+  await createDraft(repository, feed);
+  await page.goto("/notifications.html");
+  await expect(page.locator("#view-selected")).toBeDisabled();
+  await expect(page.locator("#audience-check")).toContainText("No match");
+  await page.locator("#load-matching-client").click();
+  const preview = page.frameLocator("#preview-frame");
+  await expect(
+    preview.locator(".inspector-whats-new-document-header h1"),
+  ).toHaveText("Fix for Angular Pro");
+  await expect(preview.locator(".announcement-content h2")).toHaveText(
+    "Apply the fix",
+  );
+  await preview
+    .getByRole("button", { name: "Close Web Inspector", exact: true })
+    .click();
+  await expect(page.locator("#audience-check")).not.toContainText("No match");
+  await page.locator("#client-tab").click();
+  await expect(page.locator('[name="clientSdkVersion"]')).toHaveValue("1.69.0");
+  await expect(page.locator('[name="clientFramework"]')).toHaveValue("angular");
+  await expect(page.locator('[name="clientIntelligence"]')).toHaveValue(
+    "enabled",
+  );
+  await expect(page.locator('[name="clientPlan"]')).toHaveValue("pro");
+});

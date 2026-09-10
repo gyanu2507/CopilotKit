@@ -448,6 +448,41 @@ button.primary:hover:not(:disabled) {
   border-top: 1px solid #e8e8ef;
   border-bottom: 1px solid #e8e8ef;
 }
+#draft-audience {
+  position: relative;
+}
+.audience-popover {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+  width: min(540px, 100%);
+  max-height: min(460px, 48dvh);
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow:
+    0 8px 32px rgb(30 24 55 / 20%),
+    0 0 0 1px #dddde6;
+  overflow: hidden;
+}
+.audience-popover-fields {
+  padding: 18px;
+  overflow: auto;
+  min-height: 0;
+  overscroll-behavior: contain;
+}
+.audience-popover #audience-fields,
+.audience-popover #saved-audience {
+  padding: 0;
+}
+.audience-popover-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 18px;
+  border-top: 1px solid #e8e8ef;
+}
 .draft-settings > summary {
   display: grid;
   grid-template-columns: 80px minmax(0, 1fr) 16px;

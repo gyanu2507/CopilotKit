@@ -412,3 +412,44 @@ test("edits rich text in a modal without reopening the Inspector and saves Markd
   expect(catalog.feed.notifications[0]?.body).toContain("**Important update");
   expect(catalog.feed.notifications[0]?.body).toContain("for everyone");
 });
+
+test("edits audience without resizing the draft and dismisses back to the composer", async ({
+  page,
+}) => {
+  await page.goto("/notifications.html");
+  await page.locator("#new-notice").click();
+  const modal = page.locator("#editor");
+  const audience = page.locator("#draft-audience");
+  const summary = audience.locator(":scope > summary");
+  for (const width of [1052, 390]) {
+    await page.setViewportSize({ width, height: 1044 });
+    const bounds = await modal.boundingBox();
+    const messageBounds = await page.locator(".message-editor").boundingBox();
+    await summary.click();
+    await expect(
+      page.getByRole("group", { name: "Edit audience", exact: true }),
+    ).toBeVisible();
+    expect(await modal.boundingBox()).toEqual(bounds);
+    expect(await page.locator(".message-editor").boundingBox()).toEqual(
+      messageBounds,
+    );
+    await audience.locator('[name="plan"]').fill("pro");
+    await page.keyboard.press("Escape");
+    await expect(audience).not.toHaveAttribute("open");
+    await expect(modal).toBeVisible();
+    await expect(summary).toBeFocused();
+    await expect(summary).toContainText("pro plan");
+    await summary.click();
+    await expect(audience.locator('[name="plan"]')).toHaveValue("pro");
+    await page.locator("#done-audience").click();
+    await expect(audience).not.toHaveAttribute("open");
+    await expect(summary).toBeFocused();
+    await summary.click();
+    await page.locator('[name="title"]').click();
+    await expect(audience).not.toHaveAttribute("open");
+    await expect(page.locator("#preview-frame")).toHaveAttribute(
+      "src",
+      "about:blank",
+    );
+  }
+});

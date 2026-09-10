@@ -244,80 +244,94 @@
                   <path d="m9 5 7 7-7 7" />
                 </svg>
               </summary>
-              <div id="saved-audience" hidden>
-                <p>Using the original cohorts.</p>
-                <details>
-                  <summary>Original cohorts</summary>
-                  <pre id="saved-conditions"></pre>
-                </details>
-                <button id="change-audience" type="button">
-                  Change audience
-                </button>
-              </div>
-              <div id="audience-fields">
-                <fieldset aria-label="Audience conditions">
-                  <label class="cohort-name"
-                    >Cohort name<input
-                      name="cohortName"
-                      maxlength="256"
-                      required
-                  /></label>
-                  <label
-                    >SDK version range<input
-                      name="sdkVersion"
-                      placeholder="Any stable version"
-                      spellcheck="false"
-                  /></label>
-                  <label
-                    >Framework<select name="framework">
-                      <option value="">Any</option>
-                      <option value="react">React</option>
-                      <option value="vue">Vue</option>
-                      <option value="angular">Angular</option>
-                    </select></label
-                  >
-                  <label
-                    >Intelligence<select name="intelligence">
-                      <option value="">Any</option>
-                      <option value="enabled">Enabled</option>
-                      <option value="disabled">Disabled</option>
-                    </select></label
-                  >
-                  <label
-                    >Plan<input name="plan" placeholder="Any plan" list="plans"
-                  /></label>
-                  <details>
-                    <summary>More conditions</summary>
-                    <div class="detail-fields">
+              <div
+                class="audience-popover"
+                role="group"
+                aria-label="Edit audience"
+              >
+                <div class="audience-popover-fields">
+                  <div id="saved-audience" hidden>
+                    <p>Using the original cohorts.</p>
+                    <details>
+                      <summary>Original cohorts</summary>
+                      <pre id="saved-conditions"></pre>
+                    </details>
+                    <button id="change-audience" type="button">
+                      Change audience
+                    </button>
+                  </div>
+                  <div id="audience-fields">
+                    <fieldset aria-label="Audience conditions">
+                      <label class="cohort-name"
+                        >Cohort name<input
+                          name="cohortName"
+                          maxlength="256"
+                          required
+                      /></label>
                       <label
-                        >Runtime version range<input
-                          name="runtimeVersion"
-                          placeholder="Any version"
+                        >SDK version range<input
+                          name="sdkVersion"
+                          placeholder="Any stable version"
                           spellcheck="false"
                       /></label>
                       <label
-                        >Deployment<select name="deployment">
+                        >Framework<select name="framework">
                           <option value="">Any</option>
-                          <option value="managed">Managed</option>
-                          <option value="self-hosted">Self-hosted</option>
+                          <option value="react">React</option>
+                          <option value="vue">Vue</option>
+                          <option value="angular">Angular</option>
                         </select></label
                       >
                       <label
-                        >License<select name="license">
+                        >Intelligence<select name="intelligence">
                           <option value="">Any</option>
-                          <option>valid</option>
-                          <option>none</option>
-                          <option>expired</option>
-                          <option>expiring</option>
-                          <option>invalid</option>
+                          <option value="enabled">Enabled</option>
+                          <option value="disabled">Disabled</option>
                         </select></label
                       >
-                    </div>
-                  </details>
-                  <p class="hint">
-                    Matches all conditions · Stable releases only
-                  </p>
-                </fieldset>
+                      <label
+                        >Plan<input
+                          name="plan"
+                          placeholder="Any plan"
+                          list="plans"
+                      /></label>
+                      <details>
+                        <summary>More conditions</summary>
+                        <div class="detail-fields">
+                          <label
+                            >Runtime version range<input
+                              name="runtimeVersion"
+                              placeholder="Any version"
+                              spellcheck="false"
+                          /></label>
+                          <label
+                            >Deployment<select name="deployment">
+                              <option value="">Any</option>
+                              <option value="managed">Managed</option>
+                              <option value="self-hosted">Self-hosted</option>
+                            </select></label
+                          >
+                          <label
+                            >License<select name="license">
+                              <option value="">Any</option>
+                              <option>valid</option>
+                              <option>none</option>
+                              <option>expired</option>
+                              <option>expiring</option>
+                              <option>invalid</option>
+                            </select></label
+                          >
+                        </div>
+                      </details>
+                      <p class="hint">
+                        Matches all conditions · Stable releases only
+                      </p>
+                    </fieldset>
+                  </div>
+                </div>
+                <div class="audience-popover-footer">
+                  <button id="done-audience" type="button">Done</button>
+                </div>
               </div>
             </details>
             <div class="message-heading">

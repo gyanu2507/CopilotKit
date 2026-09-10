@@ -21,6 +21,21 @@ import type { NotificationCatalog } from "./notification-repository.js";
 const el = <T extends HTMLElement = HTMLElement>(id: string) =>
   document.getElementById(id) as T;
 const dialog = el<HTMLDialogElement>("editor");
+const draftAudience = el<HTMLDetailsElement>("draft-audience");
+function closeAudience(restoreFocus = false) {
+  if (!draftAudience.open) return;
+  if (restoreFocus) draftAudience.querySelector("summary")!.focus();
+  draftAudience.open = false;
+}
+el("done-audience").addEventListener("click", () => closeAudience(true));
+document.addEventListener("pointerdown", (event) => {
+  if (event.target instanceof Node && !draftAudience.contains(event.target))
+    closeAudience();
+});
+document.addEventListener("focusin", (event) => {
+  if (event.target instanceof Node && !draftAudience.contains(event.target))
+    closeAudience();
+});
 let bodyEditor: ReturnType<typeof createNotificationEditor> | undefined;
 const draftForm = el<HTMLFormElement>("draft-form");
 const clientForm = el<HTMLFormElement>("client-form");
@@ -613,6 +628,7 @@ function leaveDraft() {
   refresh();
 }
 function closeDraft() {
+  closeAudience();
   dialog.close();
   refresh();
   el("resume-draft").focus();
@@ -624,7 +640,8 @@ dialog.addEventListener(
     if (event.key === "Escape") {
       event.preventDefault();
       event.stopPropagation();
-      closeDraft();
+      if (draftAudience.open) closeAudience(true);
+      else closeDraft();
     }
   },
   true,

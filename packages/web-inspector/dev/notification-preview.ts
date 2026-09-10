@@ -41,11 +41,16 @@ Object.defineProperty(window, "localStorage", { value: storage });
 storage.setItem(
   "cpk:inspector:state",
   JSON.stringify({
-    dockMode: "docked-left",
+    dockMode: "floating",
     isOpen: false,
     selectedMenu: "whats-new",
-    sidebarCollapsed: true,
-    window: { size: { width: window.innerWidth, height: window.innerHeight } },
+    sidebarCollapsed: false,
+    window: {
+      size: {
+        width: Math.min(960, window.innerWidth - 48),
+        height: Math.min(740, window.innerHeight - 48),
+      },
+    },
   }),
 );
 // Preview interactions never send product telemetry.

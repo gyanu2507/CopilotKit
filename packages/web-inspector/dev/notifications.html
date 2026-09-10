@@ -4,20 +4,45 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Notifications · Inspector workbench</title>
+    <link rel="stylesheet" href="/workbench.css" />
     <link rel="stylesheet" href="/notifications.css" />
     <script type="module" src="/notifications.ts"></script>
   </head>
   <body>
-    <header class="workbench-header">
-      <strong>Inspector workbench</strong>
-      <nav aria-label="Workbench">
-        <a href="/">Scenarios</a
-        ><a href="/notifications.html" aria-current="page">Notifications</a>
-      </nav>
-      <span>Local workbench</span>
+    <header class="topbar">
+      <div class="title">
+        <h1>Inspector state workbench</h1>
+        <p>Notification cohorts · local preview</p>
+        <nav
+          aria-label="Workbench"
+          style="display: flex; gap: 16px; margin-top: 8px; font-size: 13px"
+        >
+          <a href="/">Scenarios</a
+          ><a href="/notifications.html" aria-current="page">Notifications</a>
+        </nav>
+      </div>
+      <label
+        ><span class="field-label">View</span
+        ><select id="preview-view">
+          <option value="bubble">Notification bubble</option>
+          <option value="updates">What's New</option>
+        </select></label
+      >
+      <div class="actions">
+        <button id="replay" type="button">Replay notification</button>
+      </div>
     </header>
-    <main>
-      <aside class="sidebar" aria-label="Notification workbench">
+    <main class="workspace">
+      <section class="preview inspector-stage" aria-label="Inspector preview">
+        <div class="frame-scroll">
+          <iframe
+            id="preview-frame"
+            title="Live notification in the Inspector"
+            src="about:blank"
+          ></iframe>
+        </div>
+      </section>
+      <aside class="sidebar console" aria-label="Notification workbench">
         <nav class="sidebar-tabs" aria-label="Sidebar">
           <button id="notifications-tab" aria-pressed="true">
             Notifications</button
@@ -271,40 +296,20 @@
             Blank metadata is unknown. Prerelease SDKs never match.
           </p>
         </section>
-      </aside>
-      <section class="preview" aria-labelledby="preview-heading">
-        <header class="preview-heading">
-          <div>
-            <h2 id="preview-heading">Inspector preview</h2>
-            <p id="client-summary"></p>
-          </div>
+        <section class="preview-heading">
+          <h2 id="preview-heading">Test result</h2>
+          <p id="client-summary" class="hint"></p>
+          <div id="match-result" role="status"></div>
           <button id="edit-client">Test client</button>
-        </header>
-        <div id="match-result" role="status"></div>
-        <div class="preview-toolbar">
-          <span id="preview-status">Preview</span>
-          <div class="actions">
-            <label class="view-picker"
-              >View<select id="preview-view">
-                <option value="bubble">Notification bubble</option>
-                <option value="updates">What's New</option>
-              </select></label
-            ><button id="replay" type="button">Replay</button>
-          </div>
-        </div>
-        <div class="frame-scroll">
-          <iframe
-            id="preview-frame"
-            title="Live notification in the Inspector"
-            src="about:blank"
-          ></iframe>
-        </div>
-        <p class="hint">
-          Simulated client, real Inspector. Each preview starts with no read or
-          dismissed notices. Active source notices and the selected draft are
-          included.
-        </p>
-      </section>
+          <p id="preview-status" class="hint">Preview</p>
+        </section>
+        <section>
+          <p class="hint">
+            Each preview starts with no read or dismissed notices. Active source
+            notices and the selected draft are included.
+          </p>
+        </section>
+      </aside>
     </main>
     <datalist id="plans">
       <option value="free"></option>

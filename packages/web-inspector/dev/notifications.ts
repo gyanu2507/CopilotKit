@@ -1,3 +1,4 @@
+import { createNotificationEditor } from "./notification-editor.js";
 import { matchingClient, audienceRows } from "./notification-samples.js";
 import {
   compilePreview,
@@ -19,6 +20,8 @@ import type {
 import type { NotificationCatalog } from "./notification-repository.js";
 const el = <T extends HTMLElement = HTMLElement>(id: string) =>
   document.getElementById(id) as T;
+const dialog = el<HTMLDialogElement>("editor");
+let bodyEditor: ReturnType<typeof createNotificationEditor> | undefined;
 const draftForm = el<HTMLFormElement>("draft-form");
 const clientForm = el<HTMLFormElement>("client-form");
 const frame = el<HTMLIFrameElement>("preview-frame");
@@ -64,12 +67,15 @@ function fill(values: AuthoringFields, form?: HTMLFormElement) {
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
     >("[name]"))
       input.value = values[input.name] ?? "";
+  if (!form || form === draftForm) bodyEditor?.setMarkdown();
 }
 function setEditor(value: boolean) {
   openNoticeId = undefined;
   editing = value;
   el("library").hidden = value;
-  el("editor").hidden = !value;
+  el("working-draft").hidden = !value;
+  if (value && !dialog.open) dialog.showModal();
+  if (!value) dialog.close();
   el("selected-notice").hidden = value || !selected;
 }
 function audience() {
@@ -96,6 +102,15 @@ function save() {
   }
 }
 function validate() {
+  el("draft-audience-summary").textContent = savedCohorts
+    ? savedCohorts.map((c) => c.name).join(" or ")
+    : [
+        fields().framework || "All frameworks",
+        fields().sdkVersion || "All stable versions",
+        fields().intelligence ? `Intelligence ${fields().intelligence}` : "",
+      ]
+        .filter(Boolean)
+        .join(" · ");
   try {
     current = compilePreview(
       editing
@@ -175,10 +190,13 @@ function validate() {
     copy.disabled = false;
     create.disabled = creating || !repositoryReady;
     prompt.value = current.prompt;
+    el("working-title").textContent = fields().title ?? "Untitled draft";
+    el<HTMLButtonElement>("preview-draft").disabled = false;
     renderList();
     renderAudience();
   } catch (e) {
     current = undefined;
+    el<HTMLButtonElement>("preview-draft").disabled = true;
     renderAudience();
     el("draft-error").hidden = false;
     el("draft-error").textContent =
@@ -193,10 +211,21 @@ function validate() {
     el("preview-status").textContent = "Fix the inputs to preview";
   }
 }
+function refresh() {
+  openNoticeId = undefined;
+  const container = document.querySelector(".frame-scroll")!;
+  if (frame.parentElement !== container) container.append(frame);
+  frame.style.clipPath = "inset(100%)";
+  if (frame.getAttribute("src") !== "about:blank") frame.src = "about:blank";
+  validate();
+  save();
+  if (current) el("preview-status").textContent = "Ready to preview";
+}
 function preview() {
   validate();
   if (!current) return;
   save();
+  if (dialog.open && frame.parentElement !== dialog) dialog.append(frame);
   el("preview-status").textContent = "Loading preview…";
   frame.style.clipPath = "inset(100%)";
   frame.src = `/notification-preview.html?revision=${++revision}`;
@@ -296,7 +325,7 @@ async function loadCatalog() {
   catalog = { feed: EMPTY, statuses: {}, source: "" };
   selected = undefined;
   showSelected();
-  preview();
+  refresh();
   try {
     const value = await request(source.value);
     if (token !== loading) return;
@@ -317,7 +346,7 @@ async function loadCatalog() {
   }
   selected = catalog.feed.notifications[0]?.id;
   showSelected();
-  preview();
+  refresh();
 }
 for (const [key, value] of Object.entries(PRESETS))
   preset.add(new Option(value.label, key));
@@ -344,22 +373,19 @@ try {
 draftTimestamp = restored.publishedAt || draftTimestamp;
 draftId = restored.id || draftId;
 fill(restored);
+bodyEditor = createNotificationEditor(el<HTMLTextAreaElement>("markdown-body"));
 audience();
 
 el("new-notice").addEventListener("click", () => {
   setEditor(true);
   audience();
-  preview();
+  refresh();
 });
-el("back-library").addEventListener("click", () => {
-  setEditor(false);
-  showSelected();
-  preview();
-});
+el("back-library").addEventListener("click", closeDraft);
 el("change-audience").addEventListener("click", () => {
   savedCohorts = undefined;
   audience();
-  preview();
+  refresh();
 });
 el("duplicate-notice").addEventListener("click", () => {
   const n = catalog.feed.notifications.find(
@@ -381,40 +407,26 @@ el("duplicate-notice").addEventListener("click", () => {
   );
   setEditor(true);
   audience();
-  preview();
+  refresh();
 });
 preset.addEventListener("change", () => {
   if (preset.value) {
     savedCohorts = undefined;
     fill(presetFields(preset.value), draftForm);
     audience();
-    preview();
+    refresh();
   }
 });
-let timer: ReturnType<typeof setTimeout>;
 draftForm.addEventListener("input", () => {
   preset.value = "";
-  validate();
-  save();
-  if (current) {
-    el("preview-status").textContent = "Updating preview…";
-    clearTimeout(timer);
-    timer = setTimeout(preview, 400);
-  }
+  refresh();
 });
-clientForm.addEventListener("input", () => {
-  clearTimeout(timer);
-  preview();
-});
+clientForm.addEventListener("input", refresh);
 for (const form of [draftForm, clientForm])
-  form.addEventListener("submit", (e) => {
-    e.preventDefault();
-    clearTimeout(timer);
-    preview();
-  });
+  form.addEventListener("submit", (event) => event.preventDefault());
 view.addEventListener("change", () => {
   openNoticeId = undefined;
-  preview();
+  refresh();
 });
 el("replay").addEventListener("click", preview);
 source.addEventListener("change", loadCatalog);
@@ -427,8 +439,7 @@ copy.addEventListener("click", async () => {
     el("save-status").textContent =
       "Prompt copied. Paste it into your Intelligence agent.";
   } catch {
-    prompt.closest("details")!.open = true;
-    prompt.closest(".handoff")!.setAttribute("open", "");
+    prompt.hidden = false;
     prompt.select();
     el("save-status").textContent = "Copy the selected prompt.";
   }
@@ -473,7 +484,7 @@ create.addEventListener("click", async () => {
     await loadCatalog();
     selected = saved.id;
     showSelected();
-    preview();
+    refresh();
     el("catalog-status").textContent = `Draft created · not published`;
   } catch (e) {
     el("save-status").textContent =
@@ -495,6 +506,7 @@ window.addEventListener("message", (event) => {
         context: current.context,
         view: view.value,
         notificationId: openNoticeId,
+        returnToDraft: dialog.open,
       },
       location.origin,
     );
@@ -507,6 +519,10 @@ window.addEventListener("message", (event) => {
       : event.data.path
         ? `path("${event.data.path}")`
         : "inset(100%)";
+  if (event.data?.kind === "notification-preview-closed" && dialog.open) {
+    refresh();
+    el("preview-draft").focus();
+  }
   if (event.data?.kind === "notification-preview-mounted")
     el("preview-status").textContent = "Live Inspector · fresh client";
 });
@@ -546,7 +562,7 @@ el("copy-saved").addEventListener("click", async () => {
 
 el("reset-client").addEventListener("click", () => {
   fill(DEFAULT_FIELDS, clientForm);
-  preview();
+  refresh();
 });
 
 function openSelected() {
@@ -564,7 +580,7 @@ el("load-matching-client").addEventListener("click", () => {
   try {
     fill(matchingClient(cohort), clientForm);
     openNoticeId = undefined;
-    preview();
+    refresh();
     el("sample-status").textContent = `Sample loaded for ${cohort.name}.`;
   } catch (error) {
     el("sample-status").textContent =
@@ -578,5 +594,51 @@ el("notice-list").addEventListener("change", () => {
   openNoticeId = undefined;
   selected = el<HTMLSelectElement>("notice-list").value;
   showSelected();
-  preview();
+  refresh();
+});
+
+function leaveDraft() {
+  setEditor(false);
+  showSelected();
+  refresh();
+}
+function closeDraft() {
+  dialog.close();
+  refresh();
+  el("resume-draft").focus();
+}
+// Handle Escape before the rich-text editor consumes it.
+dialog.addEventListener(
+  "keydown",
+  (event) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
+      closeDraft();
+    }
+  },
+  true,
+);
+dialog.addEventListener("cancel", (event) => {
+  event.preventDefault();
+  closeDraft();
+});
+el("browse-notices").addEventListener("click", leaveDraft);
+el("resume-draft").addEventListener("click", () => {
+  refresh();
+  dialog.showModal();
+});
+el("preview-draft").addEventListener("click", () => {
+  validate();
+  if (!current) return;
+  const cohort = current.feed.cohorts[0];
+  if (!cohort) return;
+  try {
+    fill(matchingClient(cohort), clientForm);
+    openSelected();
+  } catch (error) {
+    el("draft-error").hidden = false;
+    el("draft-error").textContent =
+      error instanceof Error ? error.message : "Cannot sample this audience.";
+  }
 });

@@ -169,7 +169,16 @@ window.addEventListener("message", async (event) => {
       requestAnimationFrame(publishBounds);
     }
   };
+  let hadWindow = !!inspector.shadowRoot?.querySelector(".inspector-window");
   const observer = new MutationObserver(() => {
+    const hasWindow =
+      !!inspector.shadowRoot?.querySelector(".inspector-window");
+    if (event.data.returnToDraft && hadWindow && !hasWindow)
+      parent.postMessage(
+        { kind: "notification-preview-closed" },
+        location.origin,
+      );
+    hadWindow = hasWindow;
     openRequested();
     scheduleBounds();
   });

@@ -93,150 +93,17 @@
               ></textarea>
             </details>
           </div>
-          <section id="editor" hidden>
-            <button id="back-library" class="text-button">
+          <div id="working-draft" hidden>
+            <div class="section-heading">
+              <h2>Working draft</h2>
+              <button id="resume-draft" class="text-button">Edit draft</button>
+            </div>
+            <p id="working-title"></p>
+            <p class="hint">Not saved to the repository yet.</p>
+            <button id="browse-notices" class="text-button">
               Back to notifications
             </button>
-            <h1>New notification</h1>
-            <label
-              >Template<select id="preset">
-                <option value="">Custom draft</option>
-              </select></label
-            >
-            <div id="saved-audience" hidden>
-              <p>Using the original cohorts.</p>
-              <pre id="saved-conditions"></pre>
-              <button id="change-audience" type="button">
-                Change audience
-              </button>
-            </div>
-            <form id="draft-form">
-              <fieldset>
-                <legend>Notification</legend>
-                <label
-                  >Title<input name="title" maxlength="256" required
-                /></label>
-                <label
-                  >Body <span class="hint">Markdown</span
-                  ><textarea
-                    name="body"
-                    rows="6"
-                    maxlength="100000"
-                    required
-                  ></textarea>
-                </label>
-                <label
-                  >Priority<select name="priority">
-                    <option>Low</option>
-                    <option selected>Normal</option>
-                    <option>High</option>
-                    <option>Urgent</option>
-                  </select></label
-                >
-              </fieldset>
-              <details id="audience-fields">
-                <summary>Target audience</summary>
-                <fieldset>
-                  <legend>Audience</legend>
-                  <label
-                    >Cohort name<input
-                      name="cohortName"
-                      maxlength="256"
-                      required
-                  /></label>
-                  <label
-                    >SDK version range<input
-                      name="sdkVersion"
-                      placeholder="Any stable version"
-                      spellcheck="false"
-                  /></label>
-                  <div class="pair">
-                    <label
-                      >Framework<select name="framework">
-                        <option value="">Any</option>
-                        <option value="react">React</option>
-                        <option value="vue">Vue</option>
-                        <option value="angular">Angular</option>
-                      </select></label
-                    >
-                    <label
-                      >Intelligence<select name="intelligence">
-                        <option value="">Any</option>
-                        <option value="enabled">Enabled</option>
-                        <option value="disabled">Disabled</option>
-                      </select></label
-                    >
-                  </div>
-                  <label
-                    >Plan<input name="plan" placeholder="Any plan" list="plans"
-                  /></label>
-                  <details>
-                    <summary>More conditions</summary>
-                    <div class="detail-fields">
-                      <label
-                        >Runtime version range<input
-                          name="runtimeVersion"
-                          placeholder="Any version"
-                          spellcheck="false"
-                      /></label>
-                      <label
-                        >Deployment<select name="deployment">
-                          <option value="">Any</option>
-                          <option value="managed">Managed</option>
-                          <option value="self-hosted">Self-hosted</option>
-                        </select></label
-                      >
-                      <label
-                        >License<select name="license">
-                          <option value="">Any</option>
-                          <option>valid</option>
-                          <option>none</option>
-                          <option>expired</option>
-                          <option>expiring</option>
-                          <option>invalid</option>
-                        </select></label
-                      >
-                      <label
-                        >Priority override<input
-                          name="priorityOverride"
-                          type="number"
-                          min="0"
-                          step="1"
-                          placeholder="Use named priority"
-                      /></label>
-                    </div>
-                  </details>
-                  <p class="hint">
-                    All conditions must match. Prereleases are excluded.
-                  </p>
-                </fieldset>
-              </details>
-              <div id="draft-error" role="alert" hidden></div>
-              <div class="actions">
-                <button type="submit">Preview</button
-                ><button id="create-draft" type="button" class="primary">
-                  Create draft
-                </button>
-              </div>
-            </form>
-
-            <p id="save-status" class="hint" role="status"></p>
-            <details class="handoff">
-              <summary>Continue with an agent</summary>
-              <button id="copy-prompt" type="button">
-                Copy authoring prompt
-              </button>
-              <details>
-                <summary>View prompt</summary>
-                <textarea
-                  id="prompt"
-                  rows="8"
-                  readonly
-                  aria-label="Authoring prompt"
-                ></textarea>
-              </details>
-            </details>
-          </section>
+          </div>
         </section>
         <section id="client-panel">
           <div class="section-heading">
@@ -330,6 +197,195 @@
         </section>
       </aside>
     </main>
+    <dialog id="editor" aria-labelledby="draft-dialog-title">
+      <header class="draft-header">
+        <div>
+          <h2 id="draft-dialog-title">Draft a notification</h2>
+        </div>
+        <select id="preset" aria-label="Draft template">
+          <option value="">Templates</option>
+        </select>
+        <button
+          id="back-library"
+          class="text-button"
+          type="button"
+          aria-label="Close draft"
+        >
+          Close
+        </button>
+      </header>
+      <form id="draft-form">
+        <div class="draft-layout">
+          <section class="draft-content">
+            <label class="draft-title-label"
+              >Title<input
+                name="title"
+                maxlength="256"
+                required
+                placeholder="Give your update a title"
+            /></label>
+            <details class="draft-settings" id="draft-audience">
+              <summary>
+                Audience <span id="draft-audience-summary"></span>
+              </summary>
+              <div id="saved-audience" hidden>
+                <p>Using the original cohorts.</p>
+                <details>
+                  <summary>Original cohorts</summary>
+                  <pre id="saved-conditions"></pre>
+                </details>
+                <button id="change-audience" type="button">
+                  Change audience
+                </button>
+              </div>
+              <div id="audience-fields">
+                <fieldset>
+                  <label
+                    >Cohort name<input
+                      name="cohortName"
+                      maxlength="256"
+                      required
+                  /></label>
+                  <label
+                    >SDK version range<input
+                      name="sdkVersion"
+                      placeholder="Any stable version"
+                      spellcheck="false"
+                  /></label>
+                  <div class="pair">
+                    <label
+                      >Framework<select name="framework">
+                        <option value="">Any</option>
+                        <option value="react">React</option>
+                        <option value="vue">Vue</option>
+                        <option value="angular">Angular</option>
+                      </select></label
+                    >
+                    <label
+                      >Intelligence<select name="intelligence">
+                        <option value="">Any</option>
+                        <option value="enabled">Enabled</option>
+                        <option value="disabled">Disabled</option>
+                      </select></label
+                    >
+                  </div>
+                  <label
+                    >Plan<input name="plan" placeholder="Any plan" list="plans"
+                  /></label>
+                  <details>
+                    <summary>More conditions</summary>
+                    <div class="detail-fields">
+                      <label
+                        >Runtime version range<input
+                          name="runtimeVersion"
+                          placeholder="Any version"
+                          spellcheck="false"
+                      /></label>
+                      <label
+                        >Deployment<select name="deployment">
+                          <option value="">Any</option>
+                          <option value="managed">Managed</option>
+                          <option value="self-hosted">Self-hosted</option>
+                        </select></label
+                      >
+                      <label
+                        >License<select name="license">
+                          <option value="">Any</option>
+                          <option>valid</option>
+                          <option>none</option>
+                          <option>expired</option>
+                          <option>expiring</option>
+                          <option>invalid</option>
+                        </select></label
+                      >
+                      <label
+                        >Priority override<input
+                          name="priorityOverride"
+                          type="number"
+                          min="0"
+                          step="1"
+                          placeholder="Use named priority"
+                      /></label>
+                    </div>
+                  </details>
+                  <p class="hint">
+                    All conditions must match. Prereleases are excluded.
+                  </p>
+                </fieldset>
+              </div>
+
+              <label
+                >Priority<select name="priority">
+                  <option>Low</option>
+                  <option selected>Normal</option>
+                  <option>High</option>
+                  <option>Urgent</option>
+                </select></label
+              >
+              <p class="hint">
+                Controls which matching notice gets the bubble.
+              </p>
+            </details>
+            <div class="message-heading">
+              <label for="rich-message">Message</label
+              ><button
+                id="toggle-markdown"
+                type="button"
+                class="text-button"
+                aria-pressed="false"
+              >
+                Markdown source
+              </button>
+            </div>
+            <div class="message-editor">
+              <div
+                id="format-toolbar"
+                role="toolbar"
+                aria-label="Message formatting"
+              ></div>
+              <div id="link-controls" hidden>
+                <label
+                  >Link URL<input
+                    id="link-url"
+                    type="url"
+                    placeholder="https://…" /></label
+                ><button id="apply-link" type="button">Apply</button
+                ><button id="remove-link" type="button">Remove</button>
+              </div>
+              <div id="rich-message"></div>
+              <textarea
+                name="body"
+                id="markdown-body"
+                aria-label="Markdown message"
+                rows="14"
+                maxlength="100000"
+                hidden
+              ></textarea>
+            </div>
+          </section>
+        </div>
+        <footer class="draft-footer">
+          <div>
+            <p id="save-status" class="hint" role="status"></p>
+            <div id="draft-error" role="alert" hidden></div>
+          </div>
+          <div class="actions">
+            <button id="copy-prompt" type="button">Copy agent prompt</button>
+            <button id="preview-draft" type="button">Preview draft</button
+            ><button id="create-draft" type="button" class="primary">
+              Create draft
+            </button>
+          </div>
+          <textarea
+            id="prompt"
+            rows="6"
+            readonly
+            hidden
+            aria-label="Authoring prompt"
+          ></textarea>
+        </footer>
+      </form>
+    </dialog>
     <datalist id="plans">
       <option value="free"></option>
       <option value="pro"></option>

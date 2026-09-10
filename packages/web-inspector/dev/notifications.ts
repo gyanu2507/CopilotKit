@@ -190,6 +190,7 @@ function validate() {
     prompt.value = "";
     el("match-result").textContent = el("draft-error").textContent;
     el("match-result").dataset.matches = "false";
+    frame.style.clipPath = "inset(100%)";
     frame.src = "about:blank";
     el("preview-status").textContent = "Fix the inputs to preview";
   }
@@ -199,6 +200,7 @@ function preview() {
   if (!current) return;
   save();
   el("preview-status").textContent = "Loading preview…";
+  frame.style.clipPath = "inset(100%)";
   frame.src = `/notification-preview.html?revision=${++revision}`;
 }
 function renderList() {
@@ -449,6 +451,15 @@ window.addEventListener("message", (event) => {
       },
       location.origin,
     );
+  if (
+    event.data?.kind === "notification-preview-bounds" &&
+    typeof event.data.path === "string"
+  )
+    frame.style.clipPath = event.data.dragging
+      ? "inset(0)"
+      : event.data.path
+        ? `path("${event.data.path}")`
+        : "inset(100%)";
   if (event.data?.kind === "notification-preview-mounted")
     el("preview-status").textContent = "Live Inspector · fresh client";
 });
@@ -483,5 +494,20 @@ el("copy-saved").addEventListener("click", async () => {
     output.value = text;
     output.select();
     el("saved-prompt-status").textContent = "Copy the selected prompt.";
+  }
+});
+
+el("reset-client").addEventListener("click", () => {
+  fill(DEFAULT_FIELDS, clientForm);
+  preview();
+});
+el("copy-link").addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText(location.href);
+    el("preview-status").textContent =
+      "Link copied · draft and client settings stay in this browser";
+  } catch {
+    el("preview-status").textContent =
+      "Copy the page address to share this workbench.";
   }
 });

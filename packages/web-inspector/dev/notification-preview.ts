@@ -45,12 +45,6 @@ storage.setItem(
     isOpen: false,
     selectedMenu: "whats-new",
     sidebarCollapsed: false,
-    window: {
-      size: {
-        width: Math.min(960, window.innerWidth - 48),
-        height: Math.min(740, window.innerHeight - 48),
-      },
-    },
   }),
 );
 // Preview interactions never send product telemetry.
@@ -107,6 +101,70 @@ window.addEventListener("message", async (event) => {
       )
       ?.click();
   }
+  // Clip the transparent iframe to visible Inspector surfaces, while preserving
+  // its full-window coordinate system and isolated notification storage.
+  let scheduled = false;
+  let dragging = false;
+  const publishBounds = () => {
+    scheduled = false;
+    const surfaces =
+      inspector.shadowRoot?.querySelectorAll<HTMLElement>(
+        ".console-button, .cpk-launcher-hud, .inspector-window, .inspector-window-layout-menu, [role=dialog], [role=tooltip]",
+      ) ?? [];
+    const paths = [...surfaces].flatMap((element) => {
+      const style = getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
+      if (
+        !rect.width ||
+        !rect.height ||
+        style.visibility === "hidden" ||
+        style.display === "none" ||
+        style.opacity === "0"
+      )
+        return [];
+      const pad = 24;
+      return [
+        `M ${rect.left - pad} ${rect.top - pad} h ${rect.width + pad * 2} v ${rect.height + pad * 2} h ${-rect.width - pad * 2} Z`,
+      ];
+    });
+    parent.postMessage(
+      { kind: "notification-preview-bounds", path: paths.join(" "), dragging },
+      location.origin,
+    );
+  };
+  const scheduleBounds = () => {
+    if (!scheduled) {
+      scheduled = true;
+      requestAnimationFrame(publishBounds);
+    }
+  };
+  const observer = new MutationObserver(scheduleBounds);
+  observer.observe(inspector.shadowRoot!, {
+    subtree: true,
+    attributes: true,
+    childList: true,
+  });
+  window.addEventListener("resize", scheduleBounds);
+  window.addEventListener(
+    "pointerdown",
+    () => {
+      dragging = true;
+      publishBounds();
+    },
+    true,
+  );
+  const release = () => {
+    dragging = false;
+    scheduleBounds();
+  };
+  window.addEventListener("pointerup", release, true);
+  window.addEventListener("pointercancel", release, true);
+  window.addEventListener("blur", release);
+  inspector.shadowRoot!.addEventListener("transitionend", scheduleBounds);
+  window.addEventListener("pagehide", () => observer.disconnect(), {
+    once: true,
+  });
+  publishBounds();
   parent.postMessage({ kind: "notification-preview-mounted" }, location.origin);
 });
 parent.postMessage({ kind: "notification-preview-ready" }, location.origin);

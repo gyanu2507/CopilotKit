@@ -184,28 +184,24 @@ summary {
 .preview {
   min-width: 0;
 }
-.frame-scroll {
-  overflow: auto;
-}
-iframe {
+/* The isolated preview occupies the same viewport as Scenarios. Its hit region
+   is clipped to the real Inspector so the workbench controls remain usable. */
+#preview-frame {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
   display: block;
   width: 100%;
-  min-width: 660px;
-  height: calc(100vh - 112px);
-  min-height: 720px;
+  height: 100%;
   border: 0;
   background: transparent;
+  clip-path: inset(100%);
+}
+.topbar > label {
+  display: block;
 }
 @media (max-width: 980px) {
   .sidebar {
     max-height: none;
-  }
-  iframe {
-    height: 720px;
-  }
-}
-@media (max-width: 680px) {
-  iframe {
-    height: 760px;
   }
 }

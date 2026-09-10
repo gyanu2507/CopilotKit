@@ -29,11 +29,17 @@
         </select></label
       >
       <div class="actions">
+        <button id="copy-link" type="button">Copy direct link</button>
         <button id="replay" type="button">Replay notification</button>
+        <button id="reset-client" type="button">Reset</button>
       </div>
     </header>
     <main class="workspace">
       <section class="preview inspector-stage" aria-label="Inspector preview">
+        <div class="stage-label">
+          This is the real <code>cpk-web-inspector</code><br />with simulated
+          notification cohorts.
+        </div>
         <div class="frame-scroll">
           <iframe
             id="preview-frame"

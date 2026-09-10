@@ -58,6 +58,9 @@ test("drafts a cohort, excludes unknown clients, and exports the exact authoring
   await expect(
     preview.getByText("CopilotKit core not attached", { exact: true }),
   ).toHaveCount(0);
+  await preview
+    .getByRole("button", { name: "Close Web Inspector", exact: true })
+    .click();
   await page.locator("#notifications-tab").click();
   await page.locator(".handoff > summary").click();
   await page.locator("#copy-prompt").click();
@@ -114,6 +117,10 @@ test("preview dismissal is isolated and Replay re-arms the real bubble", async (
   expect(await page.evaluate(() => document.cookie)).toContain(
     "cpk_inspector_notifications_v1=parent-cookie",
   );
+  // The real viewport HUD can overlap the toolbar until the pointer leaves it.
+  await page
+    .getByRole("heading", { name: "Inspector state workbench", exact: true })
+    .hover();
   await page.locator("#replay").click();
   await preview.locator(".console-button").hover();
   await expect(
@@ -206,4 +213,38 @@ test("an invalid unfinished draft does not block saved notifications and withdra
   await expect(page.locator("#match-result")).toContainText(
     "No notification for this client",
   );
+});
+
+test("preview follows the window viewport without clipping the launcher or blocking sidebar controls", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1035, height: 1040 });
+  await page.goto("/notifications.html");
+  await expect(page.locator("#preview-status")).toHaveText(
+    "Live Inspector · fresh client",
+  );
+  const preview = page.frameLocator("#preview-frame");
+  const launcher = preview.locator(".console-button");
+  const initial = await launcher.boundingBox();
+  expect(initial!.x + initial!.width).toBeLessThan(1035);
+  expect(initial!.x).toBeGreaterThan(900);
+  expect(initial!.y).toBeLessThan(30);
+  await page.locator("#client-tab").click();
+  await page.locator('[name="clientSdkVersion"]').fill("1.70.1");
+  await page.locator("#preview-view").selectOption("updates");
+  const window = preview.locator(".inspector-window");
+  await expect(window).toBeVisible();
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await expect
+    .poll(async () => {
+      const box = await window.boundingBox();
+      return box && box.x >= 0 && box.x + box.width <= 1440;
+    })
+    .toBe(true);
+  await preview
+    .getByRole("button", { name: "Close Web Inspector", exact: true })
+    .click();
+  await page.locator("#notifications-tab").click();
+  await page.locator("#new-notice").click();
+  await expect(page.locator('[name="title"]')).toBeVisible();
 });

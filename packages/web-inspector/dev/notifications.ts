@@ -1,8 +1,10 @@
+import { createVersionControl } from "./notification-version-control.js";
 import { createNotificationEditor } from "./notification-editor.js";
 import { createNotificationArticle } from "./notification-article.js";
 import { matchingClient, audienceRows } from "./notification-samples.js";
 import {
   compilePreview,
+  CONDITION_FIELDS,
   DEFAULT_FIELDS,
   PRESETS,
   presetFields,
@@ -24,6 +26,23 @@ const el = <T extends HTMLElement = HTMLElement>(id: string) =>
 const dialog = el<HTMLDialogElement>("editor");
 const renderArticle = createNotificationArticle(el("article-content"));
 const draftAudience = el<HTMLDetailsElement>("draft-audience");
+function fitAudience() {
+  if (!draftAudience.open || !dialog.open) return;
+  const top = draftAudience
+    .querySelector("summary")!
+    .getBoundingClientRect().bottom;
+  const bottom = Math.min(
+    dialog.getBoundingClientRect().bottom,
+    window.innerHeight - 8,
+  );
+  draftAudience.style.setProperty(
+    "--audience-room",
+    `${Math.max(120, bottom - top - 16)}px`,
+  );
+}
+draftAudience.addEventListener("toggle", fitAudience);
+window.addEventListener("resize", fitAudience);
+dialog.addEventListener("scroll", fitAudience, { passive: true });
 function closeAudience(restoreFocus = false) {
   if (!draftAudience.open) return;
   if (restoreFocus) draftAudience.querySelector("summary")!.focus();
@@ -43,7 +62,7 @@ const draftForm = el<HTMLFormElement>("draft-form");
 const clientForm = el<HTMLFormElement>("client-form");
 const frame = el<HTMLIFrameElement>("preview-frame");
 const view = el<HTMLSelectElement>("preview-view");
-const preset = el<HTMLSelectElement>("preset");
+let versionControl: ReturnType<typeof createVersionControl> | undefined;
 const prompt = el<HTMLTextAreaElement>("prompt");
 const copy = el<HTMLButtonElement>("copy-prompt");
 const create = el<HTMLButtonElement>("create-draft");
@@ -87,7 +106,10 @@ function fill(values: AuthoringFields, form?: HTMLFormElement) {
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
     >("[name]"))
       input.value = values[input.name] ?? "";
-  if (!form || form === draftForm) bodyEditor?.setMarkdown();
+  if (!form || form === draftForm) {
+    bodyEditor?.setMarkdown();
+    versionControl?.sync();
+  }
 }
 function setEditor(value: boolean) {
   openNoticeId = undefined;
@@ -127,8 +149,8 @@ function save() {
 }
 function validate() {
   const draft = fields();
-  el("draft-audience-summary").textContent = savedCohorts
-    ? savedCohorts.map((c) => c.name).join(" or ")
+  const badges = savedCohorts
+    ? savedCohorts.map((c) => c.name)
     : [
         draft.framework
           ? draft.framework[0]!.toUpperCase() + draft.framework.slice(1)
@@ -139,13 +161,19 @@ function validate() {
         draft.runtimeVersion ? `Runtime ${draft.runtimeVersion}` : "",
         draft.deployment,
         draft.license ? `License ${draft.license}` : "",
-      ]
-        .filter(Boolean)
-        .join(" · ");
-  el("draft-delivery-summary").textContent =
-    `${draft.priority} priority` +
-    (draft.priorityOverride ? ` · Override ${draft.priorityOverride}` : "");
+      ].filter((label): label is string => !!label);
+  el("draft-audience-summary").replaceChildren(
+    ...badges.flatMap((label, index) => {
+      const badge = document.createElement("span");
+      badge.className = "audience-badge";
+      badge.textContent = label;
+      return index ? [document.createTextNode(" "), badge] : [badge];
+    }),
+  );
   try {
+    const versionError =
+      editing && !savedCohorts ? versionControl?.validationError() : "";
+    if (versionError) throw new Error(versionError);
     current = compilePreview(
       editing
         ? fields()
@@ -237,6 +265,7 @@ function validate() {
     copy.disabled = false;
     create.disabled = creating || !repositoryReady;
     prompt.value = current.prompt;
+    el("prompt-preview-text").textContent = current.prompt;
     el<HTMLButtonElement>("preview-draft").disabled = false;
     renderList();
     renderAudience();
@@ -251,6 +280,8 @@ function validate() {
     copy.disabled = true;
     create.disabled = true;
     prompt.value = "";
+    el("prompt-preview-text").textContent =
+      "Complete the draft to generate a prompt.";
     el("match-result").textContent = el("draft-error").textContent;
     el("match-result").dataset.matches = "false";
     frame.style.clipPath = "inset(100%)";
@@ -467,8 +498,24 @@ async function loadCatalog() {
   showSelected();
   refresh();
 }
-for (const [key, value] of Object.entries(PRESETS))
-  preset.add(new Option(value.label, key));
+for (const [key, value] of Object.entries(PRESETS)) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.dataset.preset = key;
+  button.textContent = value.label;
+  button.addEventListener("click", () => {
+    savedCohorts = undefined;
+    const template = presetFields(key);
+    // Audience templates never overwrite the PM's title, message or priority.
+    const next = fields();
+    for (const name of ["cohortName", ...CONDITION_FIELDS])
+      next[name] = template[name] ?? "";
+    fill(next, draftForm);
+    audience();
+    refresh();
+  });
+  el("audience-presets").append(button);
+}
 let restored = { ...DEFAULT_FIELDS };
 try {
   const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null");
@@ -495,6 +542,10 @@ draftTimestamp = restored.publishedAt || draftTimestamp;
 draftId = restored.id || draftId;
 fill(restored);
 bodyEditor = createNotificationEditor(el<HTMLTextAreaElement>("markdown-body"));
+versionControl = createVersionControl(
+  el("version-control"),
+  draftForm.elements.namedItem("sdkVersion") as HTMLInputElement,
+);
 audience();
 
 el("new-notice").addEventListener("click", () => {
@@ -530,18 +581,7 @@ el("duplicate-notice").addEventListener("click", () => {
   audience();
   refresh();
 });
-preset.addEventListener("change", () => {
-  if (preset.value) {
-    savedCohorts = undefined;
-    fill(presetFields(preset.value), draftForm);
-    audience();
-    refresh();
-  }
-});
-draftForm.addEventListener("input", () => {
-  preset.value = "";
-  refresh();
-});
+draftForm.addEventListener("input", refresh);
 clientForm.addEventListener("input", refresh);
 for (const form of [draftForm, clientForm])
   form.addEventListener("submit", (event) => event.preventDefault());
@@ -551,6 +591,29 @@ view.addEventListener("change", () => {
 });
 source.addEventListener("change", loadCatalog);
 el("refresh-catalog").addEventListener("click", loadCatalog);
+const promptAction = copy.closest<HTMLElement>(".prompt-action")!;
+const promptPreview = el("prompt-preview");
+function showPrompt() {
+  if (copy.disabled) return;
+  promptPreview.hidden = false;
+  copy.setAttribute("aria-describedby", "prompt-preview");
+}
+function hidePrompt() {
+  promptPreview.hidden = true;
+  copy.removeAttribute("aria-describedby");
+}
+promptAction.addEventListener("mouseenter", showPrompt);
+promptAction.addEventListener("mouseleave", () => {
+  if (!promptAction.contains(document.activeElement)) hidePrompt();
+});
+promptAction.addEventListener("focusin", showPrompt);
+promptAction.addEventListener("focusout", (event) => {
+  if (
+    !(event.relatedTarget instanceof Node) ||
+    !promptAction.contains(event.relatedTarget)
+  )
+    hidePrompt();
+});
 copy.addEventListener("click", async () => {
   validate();
   if (!current) return;
@@ -733,6 +796,7 @@ el("all-notifications").addEventListener("click", () => {
 });
 
 function closeDraft() {
+  hidePrompt();
   closeAudience();
   dialog.close();
   refresh();
@@ -745,7 +809,8 @@ dialog.addEventListener(
     if (event.key === "Escape") {
       event.preventDefault();
       event.stopPropagation();
-      if (draftAudience.open) closeAudience(true);
+      if (!promptPreview.hidden) hidePrompt();
+      else if (draftAudience.open) closeAudience(true);
       else closeDraft();
     }
   },

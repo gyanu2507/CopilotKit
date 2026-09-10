@@ -434,3 +434,43 @@ pre {
     flex-wrap: wrap;
   }
 }
+
+/* Consistent, generous disclosure targets across both workbench pages. */
+details:not(.draft-settings) > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 34px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  color: #626170;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  list-style: none;
+}
+summary::-webkit-details-marker {
+  display: none;
+}
+details:not(.draft-settings) > summary::after {
+  content: "";
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+  margin-right: 3px;
+}
+details:not(.draft-settings)[open] > summary::after {
+  transform: rotate(45deg);
+}
+details:not(.draft-settings) > summary:hover {
+  background: #f2f0f7;
+  color: #403354;
+}
+details:not(.draft-settings)[open] > summary {
+  background: #f6f5fa;
+  margin-bottom: 10px;
+}

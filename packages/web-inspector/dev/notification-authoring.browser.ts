@@ -103,6 +103,7 @@ test("drafts a cohort, excludes unknown clients, and exports the exact authoring
   await page.locator("#new-notice").click();
   await expect(page.locator('[name="title"]')).toHaveValue("Fix for Pro teams");
   await page.locator("#draft-audience > summary").click();
+  await page.locator("#version-mode").selectOption("custom");
   await page.locator('[name="sdkVersion"]').fill("previous release");
   await expect(page.locator("#draft-error")).toContainText(
     "Invalid sdkVersion",
@@ -173,7 +174,9 @@ test("creates a repository draft and previews it with independent client setting
   await page.locator('[name="clientSdkVersion"]').fill("2.0.0");
   await expect(page.locator("#match-result")).toContainText("won't appear");
   await page.locator("#duplicate-notice").click();
-  await page.locator("#preset").selectOption("pro");
+  await page.locator("#draft-audience > summary").click();
+  await page.locator("#change-audience").click();
+  await page.locator('[data-preset="pro"]').click();
   await expect(page.locator('[name="clientSdkVersion"]')).toHaveValue("2.0.0");
   await page.locator('[name="title"]').fill("");
   await expect(page.locator("#create-draft")).toBeDisabled();
@@ -666,4 +669,55 @@ test("browses updates before opening a post, editing it and testing in the Inspe
       .frameLocator("#preview-frame")
       .locator(".inspector-whats-new-document-header h1"),
   ).toHaveText("Older update");
+});
+
+test("guides version boundaries and applies audience templates without changing the message", async ({
+  page,
+}) => {
+  await page.goto("/notifications.html");
+  await page.locator("#new-notice").click();
+  await page.locator('[name="title"]').fill("Keep this title");
+  await page.locator('[name="priority"]').selectOption("Urgent");
+  await page.locator("#draft-audience > summary").click();
+  await page.locator('[data-preset="pro"]').click();
+  await expect(page.locator('[name="title"]')).toHaveValue("Keep this title");
+  await expect(page.locator('[name="priority"]')).toHaveValue("Urgent");
+  await expect(page.locator('[name="body"]')).toHaveValue(
+    "A new update is available.\n\nReview the release notes before updating your SDK.",
+  );
+  await expect(
+    page.locator("#draft-audience-summary .audience-badge"),
+  ).toContainText([
+    "All frameworks",
+    "All stable versions",
+    "Intelligence enabled",
+    "pro plan",
+  ]);
+  await page.locator("#version-mode").selectOption("between");
+  await page.locator("#version-from").fill("1.70.1");
+  await page.locator("#version-to").fill("1.71.0");
+  await expect(page.locator('[name="sdkVersion"]')).toHaveValue(
+    ">=1.70.1 <1.71.0",
+  );
+  await page.locator("#version-to").fill("1.69.0");
+  await expect(page.locator("#version-error")).toContainText(
+    "later than the start",
+  );
+  await expect(page.locator("#create-draft")).toBeDisabled();
+  await page.locator("#version-mode").selectOption("custom");
+  await page.locator('[name="sdkVersion"]').fill("^1.70.1 || ~2.0.0");
+  await expect(page.locator("#create-draft")).toBeEnabled();
+  await page.locator("#done-audience").click();
+  await page.locator("#copy-prompt").hover();
+  await expect(page.locator("#prompt-preview")).toBeVisible();
+  await expect(page.locator("#prompt-preview-text")).toContainText(
+    "^1.70.1 || ~2.0.0",
+  );
+  await expect(page.locator("#prompt-preview-text")).toContainText(
+    "Title (preserve exactly): Keep this title",
+  );
+  await page.locator("#copy-prompt").focus();
+  await page.keyboard.press("Escape");
+  await expect(page.locator("#prompt-preview")).toBeHidden();
+  await expect(page.locator("#editor")).toBeVisible();
 });

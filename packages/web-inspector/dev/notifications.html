@@ -204,9 +204,6 @@
         <div>
           <h2 id="draft-dialog-title">Draft a notification</h2>
         </div>
-        <select id="preset" aria-label="Draft template">
-          <option value="">Templates</option>
-        </select>
         <button
           id="back-library"
           class="text-button"
@@ -226,6 +223,35 @@
                 required
                 placeholder="Give your update a title"
             /></label>
+            <div class="priority-row" id="draft-delivery">
+              <label
+                >Priority<select
+                  name="priority"
+                  aria-label="Notification priority"
+                >
+                  <option>Low</option>
+                  <option selected>Normal</option>
+                  <option>High</option>
+                  <option>Urgent</option>
+                </select></label
+              >
+              <details class="priority-override">
+                <summary>Override</summary>
+                <div class="override-panel">
+                  <label
+                    >Numeric priority<input
+                      name="priorityOverride"
+                      type="number"
+                      min="0"
+                      step="1"
+                      placeholder="Use named priority"
+                  /></label>
+                  <p class="hint">
+                    Overrides the label. Highest priority gets the bubble.
+                  </p>
+                </div>
+              </details>
+            </div>
             <details class="draft-settings" id="draft-audience">
               <summary>
                 <span class="settings-label">Audience</span>
@@ -263,6 +289,13 @@
                     </button>
                   </div>
                   <div id="audience-fields">
+                    <div class="audience-templates">
+                      <span class="field-label">Start with an audience</span>
+                      <div
+                        id="audience-presets"
+                        aria-label="Audience templates"
+                      ></div>
+                    </div>
                     <fieldset aria-label="Audience conditions">
                       <label class="cohort-name"
                         >Cohort name<input
@@ -270,12 +303,53 @@
                           maxlength="256"
                           required
                       /></label>
-                      <label
-                        >SDK version range<input
-                          name="sdkVersion"
-                          placeholder="Any stable version"
-                          spellcheck="false"
-                      /></label>
+                      <div id="version-control" class="version-control">
+                        <label
+                          >SDK versions<select id="version-mode">
+                            <option value="any">All stable versions</option>
+                            <option value="exact">One version</option>
+                            <option value="between">
+                              Between two versions
+                            </option>
+                            <option value="before">Before a version</option>
+                            <option value="from">From a version onward</option>
+                            <option value="custom">
+                              Custom semver expression
+                            </option>
+                          </select></label
+                        >
+                        <div class="version-bounds">
+                          <label
+                            ><span id="version-from-label">From (included)</span
+                            ><input
+                              id="version-from"
+                              placeholder="1.70.1"
+                              spellcheck="false"
+                              aria-describedby="version-help version-error"
+                          /></label>
+                          <label
+                            >Before (excluded)<input
+                              id="version-to"
+                              placeholder="1.71.0"
+                              spellcheck="false"
+                              aria-describedby="version-help version-error"
+                          /></label>
+                        </div>
+                        <label
+                          >Semver expression<input
+                            name="sdkVersion"
+                            placeholder=">=1.70.1 <1.71.0"
+                            spellcheck="false"
+                            aria-describedby="version-help"
+                        /></label>
+                        <p id="version-help" class="hint"></p>
+                        <p
+                          id="version-error"
+                          class="field-error"
+                          role="alert"
+                          hidden
+                        ></p>
+                      </div>
                       <label
                         >Framework<select name="framework">
                           <option value="">Any</option>
@@ -298,7 +372,7 @@
                           list="plans"
                       /></label>
                       <details>
-                        <summary>More conditions</summary>
+                        <summary>Additional rules</summary>
                         <div class="detail-fields">
                           <label
                             >Runtime version range<input
@@ -372,50 +446,6 @@
                 hidden
               ></textarea>
             </div>
-            <details
-              class="draft-settings delivery-settings"
-              id="draft-delivery"
-            >
-              <summary>
-                <span class="settings-label">Delivery</span>
-                <span id="draft-delivery-summary" class="settings-summary"
-                  >Normal priority</span
-                >
-                <svg
-                  class="settings-chevron"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.75"
-                  aria-hidden="true"
-                >
-                  <path d="m9 5 7 7-7 7" />
-                </svg>
-              </summary>
-              <div class="delivery-fields">
-                <label
-                  >Priority<select name="priority">
-                    <option>Low</option>
-                    <option selected>Normal</option>
-                    <option>High</option>
-                    <option>Urgent</option>
-                  </select></label
-                >
-                <label
-                  >Priority override<input
-                    name="priorityOverride"
-                    type="number"
-                    min="0"
-                    step="1"
-                    placeholder="Use named priority"
-                /></label>
-                <p class="hint">
-                  The highest priority matching notice gets the bubble.
-                </p>
-              </div>
-            </details>
           </section>
         </div>
         <footer class="draft-footer">
@@ -424,7 +454,13 @@
             <div id="draft-error" role="alert" hidden></div>
           </div>
           <div class="actions">
-            <button id="copy-prompt" type="button">Copy agent prompt</button>
+            <div class="prompt-action">
+              <button id="copy-prompt" type="button">Copy agent prompt</button>
+              <div id="prompt-preview" role="tooltip" hidden>
+                <strong>Agent prompt</strong>
+                <pre id="prompt-preview-text"></pre>
+              </div>
+            </div>
             <button id="preview-draft" type="button">Preview draft</button
             ><button id="create-draft" type="button" class="primary">
               Create draft

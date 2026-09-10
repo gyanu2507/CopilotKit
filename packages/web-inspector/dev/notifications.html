@@ -19,15 +19,15 @@
         ><a href="/notifications.html" aria-current="page">Notifications</a>
       </nav>
     </header>
-    <main class="workspace">
+    <main class="workspace" data-view="list">
       <section class="preview notification-reader" aria-label="Notification">
         <section id="notifications-panel">
           <div id="library">
             <div class="section-heading">
-              <h2>Notification</h2>
-              <button id="new-notice" class="text-button">New draft</button>
+              <h2>What's New</h2>
+              <button id="new-notice" class="primary">New draft</button>
             </div>
-            <select id="notice-list" aria-label="Notification"></select>
+            <div id="notice-list" aria-label="Notifications"></div>
             <p id="catalog-status" class="hint" role="status">
               Loading repository…
             </p>
@@ -47,13 +47,21 @@
             </details>
           </div>
         </section>
-        <article id="notification-document">
+        <div id="document-toolbar" hidden>
+          <button id="all-notifications" class="text-button">
+            ← All updates
+          </button>
+          <div class="actions">
+            <div id="working-draft" hidden>
+              <button id="resume-draft">Edit draft</button>
+            </div>
+            <button id="duplicate-notice">Edit as new draft</button>
+            <button id="view-selected" class="primary">Open Inspector</button>
+          </div>
+        </div>
+        <article id="notification-document" hidden>
           <header class="document-heading">
             <p id="selected-status" class="hint"></p>
-            <div id="working-draft" hidden>
-              <span class="hint">Local draft · not in repository</span>
-              <button id="resume-draft" class="text-button">Edit draft</button>
-            </div>
           </header>
           <div id="article-content"></div>
           <details id="selected-notice" hidden>
@@ -63,7 +71,6 @@
               <pre id="selected-conditions"></pre>
             </details>
             <div class="actions">
-              <button id="duplicate-notice">Use as new draft</button>
               <button id="copy-saved">Copy PR prompt</button>
             </div>
             <p id="saved-prompt-status" class="hint" role="status"></p>
@@ -88,16 +95,16 @@
           ></iframe>
         </div>
       </section>
-      <aside class="sidebar console" aria-label="Notification workbench">
-        <section class="document-audience">
-          <h2>Audience</h2>
-          <p id="document-audience"></p>
-        </section>
+      <aside class="sidebar console" aria-label="Notification workbench" hidden>
         <section id="client-panel">
           <div class="section-heading">
-            <h2>Test as</h2>
+            <h2>Audience test</h2>
             <button id="reset-client" class="text-button">Reset</button>
           </div>
+          <details class="document-audience">
+            <summary>Who this update targets</summary>
+            <p id="document-audience"></p>
+          </details>
           <form id="client-form" class="client-form pair">
             <label
               >SDK version<input
@@ -151,23 +158,20 @@
               </div>
             </details>
           </form>
-          <details id="audience-selector" hidden>
-            <summary>Use a matching client</summary>
-            <label>Cohort<select id="sample-cohort"></select></label>
-            <button id="load-matching-client">Use matching client</button>
+          <div id="audience-selector" hidden>
+            <label id="sample-cohort-label"
+              >Cohort<select id="sample-cohort"></select
+            ></label>
+            <button id="load-matching-client">Use a matching client</button>
             <p id="sample-status" class="hint" role="status"></p>
-          </details>
+          </div>
         </section>
         <section id="delivery-panel">
-          <h2>Will this client see it?</h2>
           <div id="match-result" role="status"></div>
           <details id="match-details">
             <summary>Why this result?</summary>
             <p id="client-summary" class="hint"></p>
-            <p class="hint">
-              One cohort must match in full. Blank client values are unknown;
-              prereleases never match.
-            </p>
+            <div id="delivery-details"></div>
             <table id="audience-check">
               <thead>
                 <tr>
@@ -180,17 +184,19 @@
             </table>
           </details>
           <div class="preview-controls">
-            <select id="preview-view" aria-label="Inspector view">
-              <option value="bubble">Notification bubble</option>
-              <option value="updates">What's New</option>
-            </select>
-            <button id="view-selected" class="primary">
-              Preview in Inspector
-            </button>
+            <label
+              >Inspector preview<select
+                id="preview-view"
+                aria-label="Inspector view"
+              >
+                <option value="updates">Full notification</option>
+                <option value="bubble">Notification bubble</option>
+              </select></label
+            >
           </div>
           <p id="preview-status" class="hint" role="status">Loading…</p>
         </section>
-        <p class="simulation-note">Local simulation · nothing is published</p>
+        <p class="simulation-note">Local preview · nothing is published</p>
       </aside>
     </main>
     <dialog id="editor" aria-labelledby="draft-dialog-title">

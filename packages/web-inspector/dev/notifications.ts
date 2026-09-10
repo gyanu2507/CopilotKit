@@ -58,6 +58,7 @@ let catalog: NotificationCatalog = { feed: EMPTY, statuses: {}, source: "" };
 let selected: string | undefined;
 let savedCohorts: NotificationCohort[] | undefined;
 let editing = false;
+let reading = false;
 let hasWorkingDraft = false;
 const WORKING_DRAFT = "workbench:draft";
 let current: ReturnType<typeof compilePreview> | undefined;
@@ -91,7 +92,10 @@ function fill(values: AuthoringFields, form?: HTMLFormElement) {
 function setEditor(value: boolean) {
   openNoticeId = undefined;
   editing = value;
-  if (value) hasWorkingDraft = true;
+  if (value) {
+    hasWorkingDraft = true;
+    reading = true;
+  }
   el("working-draft").hidden = !value;
   if (value && !dialog.open) dialog.showModal();
   if (!value) dialog.close();
@@ -109,6 +113,7 @@ function audience() {
     : "";
 }
 function save() {
+  if (!hasWorkingDraft) return;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(fields()));
     localStorage.setItem(
@@ -204,11 +209,13 @@ function validate() {
         ? "This notification won't appear"
         : "Select a notification to test";
     result.append(eligibility);
+    const detail = el("delivery-details");
+    detail.replaceChildren();
     const heading = document.createElement("strong");
     heading.textContent = winner
       ? `Bubble: ${winner.title}`
       : "No notification for this client";
-    result.append(
+    detail.append(
       heading,
       `${matching.length} matching update${matching.length === 1 ? "" : "s"} in What's New.`,
     );
@@ -221,7 +228,7 @@ function validate() {
           li.textContent = reason.replace("preview-cohort: ", "");
           reasons.append(li);
         }
-        result.append(reasons);
+        detail.append(reasons);
       }
     }
     el("client-summary").textContent =
@@ -255,8 +262,17 @@ function validate() {
 function renderDocument() {
   const notice = catalog.feed.notifications.find((n) => n.id === selected);
   const hasDocument = editing || !!notice;
-  el("notification-document").hidden = !hasDocument;
-  el("document-empty").hidden = hasDocument;
+  const showDocument = reading && hasDocument;
+  document.querySelector<HTMLElement>(".workspace")!.dataset.view = showDocument
+    ? "article"
+    : "list";
+  el("notifications-panel").hidden = showDocument;
+  el("document-toolbar").hidden = !showDocument;
+  document.querySelector<HTMLElement>(".sidebar")!.hidden = !showDocument;
+  el("notification-document").hidden = !showDocument;
+  el("document-empty").hidden = true;
+  el("duplicate-notice").hidden = editing;
+  el("working-draft").hidden = !editing;
   if (!hasDocument) return;
   const draft = fields();
   el("selected-status").textContent = editing
@@ -291,11 +307,7 @@ function refresh() {
   if (frame.getAttribute("src") !== "about:blank") frame.src = "about:blank";
   validate();
   save();
-  if (current)
-    el("preview-status").textContent = el<HTMLButtonElement>("view-selected")
-      .disabled
-      ? "Choose a matching client to preview."
-      : "Ready to preview";
+  if (current) el("preview-status").textContent = "";
 }
 function preview() {
   validate();
@@ -306,35 +318,59 @@ function preview() {
   frame.style.clipPath = "inset(100%)";
   frame.src = `/notification-preview.html?revision=${++revision}`;
 }
+function selectNotice(id: string) {
+  editing = id === WORKING_DRAFT;
+  if (!editing) selected = id;
+  reading = true;
+  showSelected();
+  refresh();
+  el("all-notifications").focus();
+}
 function renderList() {
-  const list = el<HTMLSelectElement>("notice-list");
-  list.replaceChildren(
+  const list = el("notice-list");
+  const entries = [
     ...(hasWorkingDraft
       ? [
-          new Option(
-            `${fields().title || "Untitled"} · Local draft`,
-            WORKING_DRAFT,
-          ),
+          {
+            id: WORKING_DRAFT,
+            title: fields().title || "Untitled draft",
+            publishedAt: draftTimestamp,
+            status: "Local draft",
+          },
         ]
       : []),
-    ...catalog.feed.notifications.map(
-      (notice) =>
-        new Option(
-          `${notice.title} · ${catalog.statuses[notice.id]}`,
-          notice.id,
-        ),
-    ),
-  );
-  if (!catalog.feed.notifications.length && !editing)
-    list.add(
-      new Option(
-        hasWorkingDraft ? "Choose a notification" : "No notifications",
-        "",
+    ...catalog.feed.notifications
+      .map((notice) => ({ ...notice, status: catalog.statuses[notice.id] }))
+      .sort(
+        (a, b) =>
+          b.publishedAt.localeCompare(a.publishedAt) ||
+          a.id.localeCompare(b.id),
       ),
-      0,
-    );
-  list.disabled = !catalog.feed.notifications.length && !hasWorkingDraft;
-  list.value = editing ? WORKING_DRAFT : (selected ?? "");
+  ];
+  list.replaceChildren();
+  if (!entries.length) {
+    const empty = document.createElement("p");
+    empty.textContent = "No notifications yet.";
+    list.append(empty);
+  }
+  for (const entry of entries) {
+    const row = document.createElement("button");
+    row.className = "update-row";
+    row.dataset.noticeId = entry.id;
+    const content = document.createElement("span");
+    const title = document.createElement("strong");
+    title.textContent = entry.title;
+    const meta = document.createElement("span");
+    meta.className = "update-meta";
+    meta.textContent = `${new Date(entry.publishedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })} · ${entry.status}`;
+    content.append(title, meta);
+    const chevron = document.createElement("span");
+    chevron.textContent = "›";
+    chevron.setAttribute("aria-hidden", "true");
+    row.append(content, chevron);
+    row.addEventListener("click", () => selectNotice(entry.id));
+    list.append(row);
+  }
 }
 function previewTarget() {
   const feed = editing ? current?.feed : catalog.feed;
@@ -374,17 +410,14 @@ function renderAudience() {
       table.append(tr);
     }
   const withdrawn = !!notice && catalog.statuses[notice.id] === "withdrawn";
-  const matches =
-    !!notice &&
-    !!current &&
-    matchNotification(notice, feed!, current.context).matches;
-  el<HTMLButtonElement>("view-selected").disabled = !matches || withdrawn;
+  // The Inspector is useful for both matching and excluded clients. Its real
+  // matcher determines which notices appear; opening it never bypasses targeting.
+  el<HTMLButtonElement>("view-selected").disabled = !current || !notice;
   el<HTMLButtonElement>("load-matching-client").disabled = !cohort || withdrawn;
+  el("sample-cohort-label").hidden = cohorts.length <= 1;
   el("sample-status").textContent = withdrawn
-    ? "Withdrawn. Duplicate it to test changes."
-    : cohorts.length > 1
-      ? "Choose a cohort to sample. Matching any one is enough."
-      : "Load example values that match this cohort.";
+    ? "Withdrawn. Edit as a new draft to test."
+    : "";
 }
 function showSelected() {
   el("sample-status").textContent = "";
@@ -568,9 +601,16 @@ create.addEventListener("click", async () => {
     draftTimestamp = new Date().toISOString();
     source.value = "catalog";
     hasWorkingDraft = false;
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(`${STORAGE_KEY}:cohorts`);
+    } catch {
+      // The repository draft is saved even if browser storage is unavailable.
+    }
     setEditor(false);
     await loadCatalog();
     selected = saved.id;
+    reading = true;
     showSelected();
     refresh();
     el("catalog-status").textContent = `Draft created · not published`;
@@ -612,7 +652,7 @@ window.addEventListener("message", (event) => {
     el("preview-draft").focus();
   }
   if (event.data?.kind === "notification-preview-mounted")
-    el("preview-status").textContent = "Live Inspector · fresh client";
+    el("preview-status").textContent = "";
 });
 void loadCatalog();
 
@@ -682,14 +722,14 @@ el("load-matching-client").addEventListener("click", () => {
   }
 });
 
-el("notice-list").addEventListener("change", () => {
-  openNoticeId = undefined;
-  const value = el<HTMLSelectElement>("notice-list").value;
-  editing = value === WORKING_DRAFT;
-  el("working-draft").hidden = !editing;
-  if (!editing) selected = value;
-  showSelected();
+el("all-notifications").addEventListener("click", () => {
+  reading = false;
   refresh();
+  const id = editing ? WORKING_DRAFT : selected;
+  const row = [
+    ...el("notice-list").querySelectorAll<HTMLButtonElement>("button"),
+  ].find((button) => button.dataset.noticeId === id);
+  (row ?? el("new-notice")).focus();
 });
 
 function closeDraft() {

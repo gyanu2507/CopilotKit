@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import type { Page } from "@playwright/test";
 import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -19,6 +20,11 @@ const articleStyleSnapshot = (element: Element) => {
     ].map((key) => [key, style.getPropertyValue(key)]),
   );
 };
+async function openNotice(page: Page, id: string) {
+  if (await page.locator("#all-notifications").isVisible())
+    await page.locator("#all-notifications").click();
+  await page.locator(`[data-notice-id="${id}"]`).click();
+}
 let repository: string;
 test.beforeEach(async ({ page }) => {
   repository = await mkdtemp(join(tmpdir(), "notification-browser-"));
@@ -86,7 +92,7 @@ test("drafts a cohort, excludes unknown clients, and exports the exact authoring
   expect(prompt).toContain("author-notification");
   await page.locator("#back-library").click();
   await page.locator('[name="clientIntelligence"]').selectOption("");
-  await expect(page.locator("#match-result")).toContainText(
+  await expect(page.locator("#delivery-details")).toContainText(
     "intelligence is unknown",
   );
   await expect(page.locator("#preview-frame")).toHaveAttribute(
@@ -118,6 +124,7 @@ test("preview dismissal is isolated and another preview re-arms the real bubble"
     localStorage.setItem("cpk:inspector:notifications:v1", "parent-state");
     document.cookie = "cpk_inspector_notifications_v1=parent-cookie; Path=/";
   });
+  await page.locator("#preview-view").selectOption("bubble");
   await page.locator("#view-selected").click();
   const preview = page.frameLocator("#preview-frame");
   await preview.locator(".console-button").hover();
@@ -158,9 +165,13 @@ test("creates a repository draft and previews it with independent client setting
   const catalog = await readCatalog(repository);
   expect(catalog.feed.notifications).toHaveLength(1);
   expect(Object.values(catalog.statuses)).toEqual(["draft"]);
+  expect(
+    await page.evaluate(() =>
+      localStorage.getItem("cpk:workbench:notification-draft:v1"),
+    ),
+  ).toBeNull();
   await page.locator('[name="clientSdkVersion"]').fill("2.0.0");
-  await expect(page.locator("#match-result")).toContainText("No notification");
-  await page.locator("#selected-notice > summary").click();
+  await expect(page.locator("#match-result")).toContainText("won't appear");
   await page.locator("#duplicate-notice").click();
   await page.locator("#preset").selectOption("pro");
   await expect(page.locator('[name="clientSdkVersion"]')).toHaveValue("2.0.0");
@@ -187,7 +198,7 @@ test("reports unavailable published feeds without showing repository drafts as p
   await expect(page.locator("#catalog-status")).toContainText(
     "unavailable (HTTP 404)",
   );
-  await expect(page.locator("#notice-list")).toBeDisabled();
+  await expect(page.locator("#notice-list button")).toHaveCount(0);
   await expect(page.locator("#notice-list")).toContainText("No notifications");
 });
 
@@ -199,17 +210,19 @@ test("an invalid unfinished draft does not block saved notifications and withdra
   const feed = compilePreview(DEFAULT_FIELDS).feed;
   await createDraft(repository, feed);
   await page.goto("/notifications.html");
-  await expect(page.locator("#match-result")).toContainText(
+  await openNotice(page, "preview-notification");
+  await expect(page.locator("#delivery-details")).toContainText(
     "Bubble: Update CopilotKit",
   );
+  await page.locator("#all-notifications").click();
   await page.locator("#new-notice").click();
   await page.locator('[name="title"]').fill("");
   await page.locator("#back-library").click();
-  await page.locator("#notice-list").selectOption("preview-notification");
-  await expect(page.locator("#match-result")).toContainText(
+  await openNotice(page, "preview-notification");
+  await expect(page.locator("#delivery-details")).toContainText(
     "Bubble: Update CopilotKit",
   );
-  await page.locator("#notice-list").selectOption("workbench:draft");
+  await openNotice(page, "workbench:draft");
   await expect(page.locator("#working-draft")).toBeVisible();
   await expect(page.locator("#editor")).not.toBeVisible();
   await expect(page.locator("#preview-frame")).toHaveAttribute(
@@ -219,7 +232,7 @@ test("an invalid unfinished draft does not block saved notifications and withdra
   await page.locator("#resume-draft").click();
   await expect(page.locator('[name="title"]')).toHaveValue("");
   await page.locator("#back-library").click();
-  await page.locator("#notice-list").selectOption("preview-notification");
+  await openNotice(page, "preview-notification");
   const path = join(
     repository,
     "notifications/messages/preview-notification.md",
@@ -232,12 +245,14 @@ test("an invalid unfinished draft does not block saved notifications and withdra
       '"status": "withdrawn"',
     ),
   );
+  await page.locator("#all-notifications").click();
   await page.locator("#source-settings > summary").click();
   await page.locator("#refresh-catalog").click();
+  await openNotice(page, "preview-notification");
   await expect(page.locator("#selected-status")).toContainText(
     "excluded from delivery",
   );
-  await expect(page.locator("#match-result")).toContainText(
+  await expect(page.locator("#delivery-details")).toContainText(
     "No notification for this client",
   );
 });
@@ -253,6 +268,7 @@ test("preview follows the window viewport without clipping the launcher or block
   );
   await page.locator("#new-notice").click();
   await page.locator("#back-library").click();
+  await page.locator("#preview-view").selectOption("bubble");
   await page.locator("#view-selected").click();
   const preview = page.frameLocator("#preview-frame");
   const launcher = preview.locator(".console-button");
@@ -275,7 +291,7 @@ test("preview follows the window viewport without clipping the launcher or block
   await preview
     .getByRole("button", { name: "Close Web Inspector", exact: true })
     .click();
-  await page.locator("#new-notice").click();
+  await page.locator("#resume-draft").click();
   await expect(page.locator('[name="title"]')).toBeVisible();
 });
 
@@ -295,16 +311,16 @@ test("loads a matching audience and opens the exact notice without guessing clie
   }).feed;
   await createDraft(repository, feed);
   await page.goto("/notifications.html");
-  await expect(page.locator("#view-selected")).toBeDisabled();
+  await openNotice(page, "preview-notification");
+  await expect(page.locator("#view-selected")).toBeEnabled();
   await page.locator("#match-details > summary").click();
   await expect(page.locator("#audience-check")).toContainText("No match");
-  await page.locator("#audience-selector > summary").click();
   await page.locator("#load-matching-client").click();
   await expect(page.locator("#view-selected")).toBeEnabled();
   await expect(
     page.frameLocator("#preview-frame").locator(".inspector-window"),
   ).not.toBeVisible();
-  await expect(page.locator("#notice-list")).toBeVisible();
+  await expect(page.locator("#selected-title")).toBeVisible();
   await expect(page.locator("#client-form")).toBeVisible();
   await page.locator("#preview-view").selectOption("updates");
   await page.locator("#view-selected").click();
@@ -364,6 +380,7 @@ test("keeps the entire animated launcher intro inside the preview mask", async (
   const preview = page.frameLocator("#preview-frame");
   await page.locator("#new-notice").click();
   await page.locator("#back-library").click();
+  await page.locator("#preview-view").selectOption("bubble");
   await page.locator("#view-selected").click();
   const hud = preview.locator('.cpk-launcher-hud[data-cpk-hud-intro="true"]');
   await expect(hud).toBeVisible();
@@ -385,8 +402,8 @@ test("keeps the entire animated launcher intro inside the preview mask", async (
     })
     .toBe(true);
   await expect(hud).not.toBeVisible();
-  // Once the intro closes, the sidebar must be clickable again.
-  await page.locator("#new-notice").click();
+  // Once the intro closes, the article controls must be clickable again.
+  await page.locator("#resume-draft").click();
   await expect(page.locator('[name="title"]')).toBeVisible();
 });
 
@@ -527,7 +544,14 @@ test("reads a formatted notification without opening the Inspector or executing 
   await expect(page.locator("#match-result")).toContainText(
     "This notification won't appear",
   );
-  await expect(page.locator("#view-selected")).toBeDisabled();
+  await expect(page.locator("#view-selected")).toBeEnabled();
+  await page.locator("#view-selected").click();
+  const inspector = page.frameLocator("#preview-frame");
+  await expect(inspector.locator(".inspector-window")).toBeVisible();
+  await expect(inspector.locator(".cpk-notification-row")).toHaveCount(0);
+  await expect(inspector.locator(".inspector-whats-new-document")).toHaveCount(
+    0,
+  );
   await expect(page.locator("#selected-title")).toHaveText("Release notes");
 });
 
@@ -583,4 +607,63 @@ test("uses the Inspector article typography and copies code without Markdown dec
   await expect(reader.locator("time")).toHaveText(
     await inspector.locator("time").innerText(),
   );
+});
+
+test("browses updates before opening a post, editing it and testing in the Inspector", async ({
+  page,
+}) => {
+  const { compilePreview, DEFAULT_FIELDS } =
+    await import("./notification-authoring.js");
+  await createDraft(
+    repository,
+    compilePreview({
+      ...DEFAULT_FIELDS,
+      id: "older-update",
+      title: "Older update",
+      publishedAt: "2026-09-01T00:00:00.000Z",
+    }).feed,
+  );
+  await createDraft(
+    repository,
+    compilePreview({
+      ...DEFAULT_FIELDS,
+      id: "newer-update",
+      title: "Newer update",
+      publishedAt: "2026-09-02T00:00:00.000Z",
+    }).feed,
+  );
+  await page.goto("/notifications.html");
+  await expect(page.locator("#notice-list button strong")).toHaveText([
+    "Newer update",
+    "Older update",
+  ]);
+  await expect(page.locator(".sidebar")).toBeHidden();
+  await expect(page.locator("#notification-document")).toBeHidden();
+  await page.reload();
+  await expect(page.locator("#notice-list button")).toHaveCount(2);
+  await openNotice(page, "newer-update");
+  await expect(page.locator("#selected-title")).toHaveText("Newer update");
+  await expect(page.locator(".sidebar")).toBeVisible();
+  await expect(page.locator("#preview-frame")).toHaveAttribute(
+    "src",
+    "about:blank",
+  );
+  await page.locator("#duplicate-notice").click();
+  await expect(page.locator('[name="title"]')).toHaveValue("Newer update");
+  await page.locator('[name="title"]').fill("Revised update");
+  await page.locator("#back-library").click();
+  await expect(page.locator("#selected-title")).toHaveText("Revised update");
+  await page.locator("#all-notifications").click();
+  await expect(page.locator("#notice-list button strong")).toHaveText([
+    "Revised update",
+    "Newer update",
+    "Older update",
+  ]);
+  await openNotice(page, "older-update");
+  await page.locator("#view-selected").click();
+  await expect(
+    page
+      .frameLocator("#preview-frame")
+      .locator(".inspector-whats-new-document-header h1"),
+  ).toHaveText("Older update");
 });

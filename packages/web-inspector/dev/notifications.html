@@ -50,17 +50,12 @@
         <article id="notification-document">
           <header class="document-heading">
             <p id="selected-status" class="hint"></p>
-            <h1 id="selected-title"></h1>
             <div id="working-draft" hidden>
               <span class="hint">Local draft · not in repository</span>
               <button id="resume-draft" class="text-button">Edit draft</button>
             </div>
           </header>
-          <div class="document-audience">
-            <span>Audience</span>
-            <p id="document-audience"></p>
-          </div>
-          <div id="selected-body" class="notification-prose"></div>
+          <div id="article-content"></div>
           <details id="selected-notice" hidden>
             <summary>Source &amp; PR handoff</summary>
             <details>
@@ -94,6 +89,10 @@
         </div>
       </section>
       <aside class="sidebar console" aria-label="Notification workbench">
+        <section class="document-audience">
+          <h2>Audience</h2>
+          <p id="document-audience"></p>
+        </section>
         <section id="client-panel">
           <div class="section-heading">
             <h2>Test as</h2>

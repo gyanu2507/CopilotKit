@@ -142,90 +142,27 @@ summary {
 #document-empty {
   padding: 32px;
 }
-.document-heading h1 {
-  font-size: 28px;
-  letter-spacing: -0.025em;
-  line-height: 1.25;
-  margin: 8px 0 16px;
+#article-content {
+  max-width: 70ch;
+  margin: 0 auto;
+  font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+  font-size: 14px;
+}
+.document-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 28px;
 }
 .document-heading #working-draft {
-  justify-content: flex-start;
+  margin: 0;
 }
 .document-heading #working-draft .hint {
   display: none;
 }
-.document-audience {
-  display: grid;
-  grid-template-columns: 70px minmax(0, 1fr);
-  gap: 12px;
-  padding: 16px 0;
-  border-top: 1px solid #e8e8ef;
-  border-bottom: 1px solid #e8e8ef;
-  font-size: 12px;
-}
-.document-audience > span {
-  font-weight: 600;
-}
 .document-audience p {
-  margin: 0;
-}
-.notification-prose {
-  padding: 24px 0;
-  color: #282735;
-  font-size: 15px;
-  line-height: 1.7;
-  overflow-wrap: anywhere;
-}
-.notification-prose p,
-.notification-prose li {
-  color: inherit;
-  font-size: inherit;
-  line-height: inherit;
-}
-.notification-prose h1,
-.notification-prose h2,
-.notification-prose h3 {
-  margin: 24px 0 12px;
-  line-height: 1.3;
-}
-.notification-prose h1 {
-  font-size: 24px;
-}
-.notification-prose h2 {
-  font-size: 20px;
-}
-.notification-prose h3 {
-  font-size: 17px;
-}
-.notification-prose > :first-child {
-  margin-top: 0;
-}
-.notification-prose a {
-  color: #5b45b0;
-  text-underline-offset: 3px;
-}
-.notification-prose pre {
-  padding: 16px;
-  background: #f6f5f9;
-  border-radius: 6px;
-  overflow: auto;
-}
-.notification-prose code {
-  font-size: 13px;
-}
-.notification-prose img {
-  max-width: 100%;
-  height: auto;
-}
-.notification-prose blockquote {
-  margin: 16px 0;
-  padding-left: 16px;
-  border-left: 2px solid #cbcbd5;
-}
-.notification-prose table {
-  display: block;
-  max-width: 100%;
-  overflow: auto;
+  margin-bottom: 0;
 }
 .notification-reader #selected-notice {
   padding-top: 16px;

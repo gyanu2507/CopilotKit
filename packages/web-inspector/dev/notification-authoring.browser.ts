@@ -3,6 +3,22 @@ import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { createDraft, readCatalog } from "./notification-repository.js";
+const articleStyleSnapshot = (element: Element) => {
+  const style = getComputedStyle(element);
+  return Object.fromEntries(
+    [
+      "font-family",
+      "font-size",
+      "font-weight",
+      "line-height",
+      "color",
+      "background-color",
+      "padding",
+      "margin",
+      "letter-spacing",
+    ].map((key) => [key, style.getPropertyValue(key)]),
+  );
+};
 let repository: string;
 test.beforeEach(async ({ page }) => {
   repository = await mkdtemp(join(tmpdir(), "notification-browser-"));
@@ -513,4 +529,58 @@ test("reads a formatted notification without opening the Inspector or executing 
   );
   await expect(page.locator("#view-selected")).toBeDisabled();
   await expect(page.locator("#selected-title")).toHaveText("Release notes");
+});
+
+test("uses the Inspector article typography and copies code without Markdown decoration", async ({
+  page,
+  context,
+}) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.goto("/notifications.html");
+  await page.locator("#new-notice").click();
+  await page.locator("#toggle-markdown").click();
+  await page
+    .locator('[name="body"]')
+    .fill(
+      '## Release details\n\nRead **this update** and [the guide](https://example.com). Use `npm update`.\n\n- First item\n- Second item\n\n```sh\necho "Hello 世界"\n```',
+    );
+  await page.locator("#back-library").click();
+  const reader = page.locator("#article-content");
+  await reader.getByRole("button", { name: "Copy code" }).click();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
+    'echo "Hello 世界"',
+  );
+  await page.locator("#preview-view").selectOption("updates");
+  await page.locator("#view-selected").click();
+  const inspector = page
+    .frameLocator("#preview-frame")
+    .locator(".inspector-whats-new-document");
+  await expect(inspector).toBeVisible();
+  for (const selector of [
+    "header h1",
+    "time",
+    ".announcement-content",
+    ".announcement-content h2",
+    ".announcement-content p",
+    ".announcement-content a",
+    ".announcement-content li",
+    ".announcement-content p code",
+    ".announcement-code pre",
+    ".announcement-code pre code",
+  ]) {
+    expect
+      .soft(
+        await reader.locator(selector).first().evaluate(articleStyleSnapshot),
+        selector,
+      )
+      .toEqual(
+        await inspector
+          .locator(selector)
+          .first()
+          .evaluate(articleStyleSnapshot),
+      );
+  }
+  await expect(reader.locator("time")).toHaveText(
+    await inspector.locator("time").innerText(),
+  );
 });

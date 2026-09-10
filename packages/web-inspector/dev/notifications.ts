@@ -1,5 +1,5 @@
 import { createNotificationEditor } from "./notification-editor.js";
-import { renderNotificationMarkdown } from "./notification-markdown.js";
+import { createNotificationArticle } from "./notification-article.js";
 import { matchingClient, audienceRows } from "./notification-samples.js";
 import {
   compilePreview,
@@ -22,6 +22,7 @@ import type { NotificationCatalog } from "./notification-repository.js";
 const el = <T extends HTMLElement = HTMLElement>(id: string) =>
   document.getElementById(id) as T;
 const dialog = el<HTMLDialogElement>("editor");
+const renderArticle = createNotificationArticle(el("article-content"));
 const draftAudience = el<HTMLDetailsElement>("draft-audience");
 function closeAudience(restoreFocus = false) {
   if (!draftAudience.open) return;
@@ -251,7 +252,6 @@ function validate() {
   }
   renderDocument();
 }
-let renderedBody: string | undefined;
 function renderDocument() {
   const notice = catalog.feed.notifications.find((n) => n.id === selected);
   const hasDocument = editing || !!notice;
@@ -259,12 +259,9 @@ function renderDocument() {
   el("document-empty").hidden = hasDocument;
   if (!hasDocument) return;
   const draft = fields();
-  el("selected-title").textContent = editing
-    ? draft.title || "Untitled draft"
-    : notice!.title;
   el("selected-status").textContent = editing
     ? "Local draft"
-    : `${catalog.statuses[notice!.id]}${catalog.statuses[notice!.id] === "withdrawn" ? " · excluded from delivery" : ""} · ${new Date(notice!.publishedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`;
+    : `${catalog.statuses[notice!.id]}${catalog.statuses[notice!.id] === "withdrawn" ? " · excluded from delivery" : ""}`;
   el("document-audience").textContent = editing
     ? el("draft-audience-summary").textContent
     : catalog.feed.cohorts
@@ -280,10 +277,11 @@ function renderDocument() {
         )
         .join(" or ");
   const body = (editing ? draft.body : notice!.body) ?? "";
-  if (body !== renderedBody) {
-    el("selected-body").innerHTML = renderNotificationMarkdown(body);
-    renderedBody = body;
-  }
+  renderArticle(
+    editing ? draft.title || "Untitled draft" : notice!.title,
+    editing ? draft.publishedAt || draftTimestamp : notice!.publishedAt,
+    body,
+  );
 }
 function refresh() {
   openNoticeId = undefined;

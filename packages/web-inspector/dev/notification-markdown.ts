@@ -23,6 +23,15 @@ const safeUrl = (href: string, image = false) => {
 /** Authoring content is untrusted, including content loaded from the repository. */
 export function renderNotificationMarkdown(markdown: string): string {
   const renderer = new marked.Renderer();
+  renderer.code = (code, lang) => {
+    const safeLang = (lang ?? "").replace(/[^a-z0-9-]/gi, "");
+    const encoded = btoa(
+      Array.from(new TextEncoder().encode(code), (byte) =>
+        String.fromCharCode(byte),
+      ).join(""),
+    );
+    return `<div class="announcement-code"><pre><code${safeLang ? ` class="language-${safeLang}"` : ""}>${escape(code)}</code></pre><div class="announcement-code__copy-shield"><button type="button" class="announcement-code__copy" data-copy="${encoded}" aria-label="Copy code">Copy</button></div></div>`;
+  };
   renderer.html = escape;
   renderer.link = (href, title, text) =>
     `<a href="${escape(safeUrl(href) ? href : "#")}" target="_blank" rel="noopener noreferrer"${title ? ` title="${escape(title)}"` : ""}>${text}</a>`;

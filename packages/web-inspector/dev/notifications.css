@@ -334,27 +334,41 @@ button.primary:hover:not(:disabled) {
 }
 #format-toolbar {
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
-  gap: 4px;
-  padding: 8px;
+  gap: 8px;
+  padding: 6px 8px;
   border-bottom: 1px solid #e8e8ef;
   background: #faf9fd;
 }
+#format-toolbar .format-group {
+  display: flex;
+  gap: 2px;
+}
+#format-toolbar .format-group + .format-group {
+  border-left: 1px solid #dedee7;
+  padding-left: 8px;
+}
 #format-toolbar button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
   border-color: transparent;
+  color: #595966;
+  width: 30px;
+  height: 30px;
   min-height: 30px;
-  padding: 4px 8px;
-  font-size: 12px;
+  padding: 0;
+  border-radius: 4px;
+}
+#format-toolbar button:hover:not(:disabled) {
+  background: #eaeaf0;
+  color: #252532;
 }
 #format-toolbar button[aria-pressed="true"] {
   background: #eee8ff;
   color: #5b45b0;
-}
-#format-toolbar button[aria-label="Bold"] {
-  font-weight: 750;
-}
-#format-toolbar button[aria-label="Italic"] {
-  font-style: italic;
 }
 #rich-message .tiptap {
   min-height: 300px;

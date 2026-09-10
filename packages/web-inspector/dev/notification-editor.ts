@@ -3,6 +3,17 @@ import { StarterKit } from "@tiptap/starter-kit";
 import { Markdown } from "@tiptap/markdown";
 import { TableKit } from "@tiptap/extension-table";
 import { Image } from "@tiptap/extension-image";
+import {
+  Bold,
+  Italic,
+  Heading2,
+  List,
+  SquareCode,
+  Link,
+  Undo2,
+  Redo2,
+  createElement,
+} from "lucide";
 
 /** Rich text is an authoring surface; Markdown remains the saved contract. */
 export function createNotificationEditor(source: HTMLTextAreaElement) {
@@ -36,37 +47,43 @@ export function createNotificationEditor(source: HTMLTextAreaElement) {
   const actions = [
     {
       label: "Bold",
-      text: "B",
+      icon: Bold,
+      group: "Text style",
       mark: "bold",
       run: () => editor.chain().focus().toggleBold().run(),
     },
     {
       label: "Italic",
-      text: "Italic",
+      icon: Italic,
+      group: "Text style",
       mark: "italic",
       run: () => editor.chain().focus().toggleItalic().run(),
     },
     {
       label: "Heading",
-      text: "Heading",
+      icon: Heading2,
+      group: "Text style",
       mark: "heading",
       run: () => editor.chain().focus().toggleHeading({ level: 2 }).run(),
     },
     {
       label: "Bullet list",
-      text: "List",
+      icon: List,
+      group: "Insert",
       mark: "bulletList",
       run: () => editor.chain().focus().toggleBulletList().run(),
     },
     {
       label: "Code block",
-      text: "Code",
+      icon: SquareCode,
+      group: "Insert",
       mark: "codeBlock",
       run: () => editor.chain().focus().toggleCodeBlock().run(),
     },
     {
       label: "Link",
-      text: "Link",
+      icon: Link,
+      group: "Insert",
       mark: "link",
       run: () => {
         linkControls.hidden = !linkControls.hidden;
@@ -76,33 +93,56 @@ export function createNotificationEditor(source: HTMLTextAreaElement) {
     },
     {
       label: "Undo",
-      text: "Undo",
+      icon: Undo2,
+      group: "History",
+      enabled: () => editor.can().undo(),
       run: () => editor.chain().focus().undo().run(),
     },
     {
       label: "Redo",
-      text: "Redo",
+      icon: Redo2,
+      group: "History",
+      enabled: () => editor.can().redo(),
       run: () => editor.chain().focus().redo().run(),
     },
   ];
-  const buttons = actions.map((action) => {
+  let group: HTMLDivElement;
+  const buttons = actions.map((action, i) => {
+    if (action.group !== actions[i - 1]?.group) {
+      group = document.createElement("div");
+      group.className = "format-group";
+      group.setAttribute("role", "group");
+      group.setAttribute("aria-label", action.group);
+      toolbar.append(group);
+    }
     const button = document.createElement("button");
     button.type = "button";
-    button.textContent = action.text;
+    button.title = action.label;
+    button.append(
+      createElement(action.icon, {
+        width: 16,
+        height: 16,
+        "stroke-width": 1.75,
+        "aria-hidden": "true",
+        focusable: "false",
+      }),
+    );
     button.setAttribute("aria-label", action.label);
     button.addEventListener("click", action.run);
-    toolbar.append(button);
+    group.append(button);
     return button;
   });
-  editor.on("transaction", () =>
+  const updateToolbar = () =>
     actions.forEach((action, i) => {
+      if (action.enabled) buttons[i]!.disabled = !action.enabled();
       if (action.mark)
         buttons[i]!.setAttribute(
           "aria-pressed",
           String(editor.isActive(action.mark)),
         );
-    }),
-  );
+    });
+  editor.on("transaction", updateToolbar);
+  updateToolbar();
   document.getElementById("apply-link")!.addEventListener("click", () => {
     if (!/^(https?:\/\/|mailto:|\/|#)/i.test(linkUrl.value)) {
       linkUrl.setCustomValidity(

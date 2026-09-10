@@ -119,35 +119,6 @@ a:focus-visible {
   font-weight: 600;
 }
 
-.notification-row,
-.notification-custom-controls {
-  display: flex;
-  min-width: 0;
-  gap: 6px;
-}
-
-.notification-field[data-source="custom"] #notification-source {
-  width: 116px;
-  flex: 0 0 116px;
-}
-
-.notification-custom-controls {
-  flex: 1 1 auto;
-}
-
-.notification-custom-controls input {
-  flex: 1 1 auto;
-}
-
-.notification-custom-controls[hidden] {
-  display: none;
-}
-
-#apply-notification {
-  flex: 0 0 auto;
-  padding-inline: 10px;
-}
-
 .actions {
   display: flex;
   flex-wrap: wrap;

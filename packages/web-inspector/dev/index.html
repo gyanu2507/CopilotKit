@@ -17,10 +17,6 @@
         <h1>Inspector workbench</h1>
         <p>Local development</p>
       </div>
-      <nav class="workbench-nav" aria-label="Workbench">
-        <a href="/" aria-current="page">Scenarios</a
-        ><a href="/notifications.html">Notifications</a>
-      </nav>
     </header>
 
     <p id="route-alert" class="route-alert" role="alert" hidden></p>
@@ -55,39 +51,27 @@
             Loading the local fixture…
           </p>
         </section>
-        <details>
-          <summary>Notification override</summary>
-          <p class="hint">Use Notifications to create and test cohorts.</p>
-          <div
-            id="notification-field"
-            class="notification-field"
-            data-source="live"
-          >
-            <div class="notification-row">
-              <select id="notification-source" aria-label="Notification source">
-                <option value="live">Live</option>
-                <option value="custom">Custom</option>
-              </select>
-              <div
-                id="notification-custom-controls"
-                class="notification-custom-controls"
-                hidden
-              >
-                <input
-                  id="notification-custom-text"
-                  type="text"
-                  maxlength="240"
-                  placeholder="Write notification text"
-                  aria-label="Custom notification text"
-                />
-                <button id="apply-notification" type="button">Apply</button>
-              </div>
-            </div>
+        <section>
+          <h2>Notification client</h2>
+          <div class="field-grid">
+            <label
+              >SDK version<input id="sdk-version" placeholder="1.70.2"
+            /></label>
+            <label
+              >Framework<select id="sdk-framework">
+                <option value="react">React</option>
+                <option value="vue">Vue</option>
+                <option value="angular">Angular</option>
+              </select></label
+            >
           </div>
+          <p class="hint">
+            Intelligence, plan and license follow the selected scenario.
+          </p>
           <button id="replay-notification" type="button">
             Replay notification
           </button>
-        </details>
+        </section>
 
         <section>
           <h2>Runtime</h2>

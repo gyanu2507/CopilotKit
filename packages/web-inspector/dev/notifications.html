@@ -226,7 +226,23 @@
             /></label>
             <details class="draft-settings" id="draft-audience">
               <summary>
-                Audience <span id="draft-audience-summary"></span>
+                <span class="settings-label">Audience</span>
+                <span
+                  id="draft-audience-summary"
+                  class="settings-summary"
+                ></span>
+                <svg
+                  class="settings-chevron"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.75"
+                  aria-hidden="true"
+                >
+                  <path d="m9 5 7 7-7 7" />
+                </svg>
               </summary>
               <div id="saved-audience" hidden>
                 <p>Using the original cohorts.</p>
@@ -239,8 +255,8 @@
                 </button>
               </div>
               <div id="audience-fields">
-                <fieldset>
-                  <label
+                <fieldset aria-label="Audience conditions">
+                  <label class="cohort-name"
                     >Cohort name<input
                       name="cohortName"
                       maxlength="256"
@@ -252,23 +268,21 @@
                       placeholder="Any stable version"
                       spellcheck="false"
                   /></label>
-                  <div class="pair">
-                    <label
-                      >Framework<select name="framework">
-                        <option value="">Any</option>
-                        <option value="react">React</option>
-                        <option value="vue">Vue</option>
-                        <option value="angular">Angular</option>
-                      </select></label
-                    >
-                    <label
-                      >Intelligence<select name="intelligence">
-                        <option value="">Any</option>
-                        <option value="enabled">Enabled</option>
-                        <option value="disabled">Disabled</option>
-                      </select></label
-                    >
-                  </div>
+                  <label
+                    >Framework<select name="framework">
+                      <option value="">Any</option>
+                      <option value="react">React</option>
+                      <option value="vue">Vue</option>
+                      <option value="angular">Angular</option>
+                    </select></label
+                  >
+                  <label
+                    >Intelligence<select name="intelligence">
+                      <option value="">Any</option>
+                      <option value="enabled">Enabled</option>
+                      <option value="disabled">Disabled</option>
+                    </select></label
+                  >
                   <label
                     >Plan<input name="plan" placeholder="Any plan" list="plans"
                   /></label>
@@ -298,33 +312,13 @@
                           <option>invalid</option>
                         </select></label
                       >
-                      <label
-                        >Priority override<input
-                          name="priorityOverride"
-                          type="number"
-                          min="0"
-                          step="1"
-                          placeholder="Use named priority"
-                      /></label>
                     </div>
                   </details>
                   <p class="hint">
-                    All conditions must match. Prereleases are excluded.
+                    Matches all conditions · Stable releases only
                   </p>
                 </fieldset>
               </div>
-
-              <label
-                >Priority<select name="priority">
-                  <option>Low</option>
-                  <option selected>Normal</option>
-                  <option>High</option>
-                  <option>Urgent</option>
-                </select></label
-              >
-              <p class="hint">
-                Controls which matching notice gets the bubble.
-              </p>
             </details>
             <div class="message-heading">
               <label for="rich-message">Message</label
@@ -362,6 +356,50 @@
                 hidden
               ></textarea>
             </div>
+            <details
+              class="draft-settings delivery-settings"
+              id="draft-delivery"
+            >
+              <summary>
+                <span class="settings-label">Delivery</span>
+                <span id="draft-delivery-summary" class="settings-summary"
+                  >Normal priority</span
+                >
+                <svg
+                  class="settings-chevron"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.75"
+                  aria-hidden="true"
+                >
+                  <path d="m9 5 7 7-7 7" />
+                </svg>
+              </summary>
+              <div class="delivery-fields">
+                <label
+                  >Priority<select name="priority">
+                    <option>Low</option>
+                    <option selected>Normal</option>
+                    <option>High</option>
+                    <option>Urgent</option>
+                  </select></label
+                >
+                <label
+                  >Priority override<input
+                    name="priorityOverride"
+                    type="number"
+                    min="0"
+                    step="1"
+                    placeholder="Use named priority"
+                /></label>
+                <p class="hint">
+                  The highest priority matching notice gets the bubble.
+                </p>
+              </div>
+            </details>
           </section>
         </div>
         <footer class="draft-footer">

@@ -445,25 +445,28 @@ button.primary:hover:not(:disabled) {
 }
 .draft-settings {
   margin-top: 18px;
-  padding: 12px 0;
   border-top: 1px solid #e8e8ef;
   border-bottom: 1px solid #e8e8ef;
 }
 .draft-settings > summary {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: 80px minmax(0, 1fr) 16px;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 0;
   font-size: 12px;
+  color: #626170;
+}
+.draft-settings > summary:hover .settings-label {
   color: #5b45b0;
 }
-.draft-settings > summary::before {
-  content: "+";
-  font-weight: 600;
+.draft-settings .settings-label {
+  color: #282735;
 }
-.draft-settings[open] > summary::before {
-  content: "−";
+.draft-settings[open] > summary .settings-chevron {
+  transform: rotate(90deg);
 }
-#draft-audience-summary {
+.settings-summary {
   font-weight: 400;
   color: #626170;
   overflow-wrap: anywhere;
@@ -471,18 +474,34 @@ button.primary:hover:not(:disabled) {
 .draft-settings fieldset {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  margin: 16px 0;
+  gap: 14px 20px;
+  margin: 0;
 }
-.draft-settings fieldset > .pair {
-  display: contents;
+#audience-fields,
+#saved-audience,
+.delivery-fields {
+  padding: 4px 0 18px 96px;
 }
+.draft-settings .cohort-name,
 .draft-settings fieldset > details,
 .draft-settings fieldset > p {
   grid-column: 1 / -1;
 }
-.draft-settings > label {
-  max-width: 200px;
+.draft-settings fieldset > p,
+.delivery-fields > p {
+  margin: 0;
+}
+.delivery-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 20px;
+}
+.delivery-fields > p {
+  grid-column: 1 / -1;
+}
+.delivery-settings {
+  margin-top: 16px;
+  border-bottom: 0;
 }
 .draft-settings .detail-fields {
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -568,7 +587,25 @@ button.primary:hover:not(:disabled) {
     width: 100%;
   }
   .draft-settings > summary {
-    flex-wrap: wrap;
-    gap: 8px;
+    grid-template-columns: minmax(0, 1fr) 16px;
+    gap: 6px 12px;
+  }
+  .settings-summary {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .settings-chevron {
+    grid-column: 2;
+    grid-row: 1 / 3;
+  }
+  #audience-fields,
+  #saved-audience,
+  .delivery-fields {
+    padding-left: 0;
+  }
+  .draft-settings fieldset,
+  .draft-settings .detail-fields,
+  .delivery-fields {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

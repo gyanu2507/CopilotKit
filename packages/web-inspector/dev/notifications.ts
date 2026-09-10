@@ -102,15 +102,25 @@ function save() {
   }
 }
 function validate() {
+  const draft = fields();
   el("draft-audience-summary").textContent = savedCohorts
     ? savedCohorts.map((c) => c.name).join(" or ")
     : [
-        fields().framework || "All frameworks",
-        fields().sdkVersion || "All stable versions",
-        fields().intelligence ? `Intelligence ${fields().intelligence}` : "",
+        draft.framework
+          ? draft.framework[0]!.toUpperCase() + draft.framework.slice(1)
+          : "All frameworks",
+        draft.sdkVersion || "All stable versions",
+        draft.intelligence ? `Intelligence ${draft.intelligence}` : "",
+        draft.plan ? `${draft.plan} plan` : "",
+        draft.runtimeVersion ? `Runtime ${draft.runtimeVersion}` : "",
+        draft.deployment,
+        draft.license ? `License ${draft.license}` : "",
       ]
         .filter(Boolean)
         .join(" · ");
+  el("draft-delivery-summary").textContent =
+    `${draft.priority} priority` +
+    (draft.priorityOverride ? ` · Override ${draft.priorityOverride}` : "");
   try {
     current = compilePreview(
       editing

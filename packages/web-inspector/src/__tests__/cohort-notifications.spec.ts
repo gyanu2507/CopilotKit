@@ -42,6 +42,7 @@ import { loadNotificationFeed } from "../lib/notification-loader.js";
 afterEach(() => {
   document.body.replaceChildren();
   localStorage.clear();
+  sessionStorage.clear();
   document.cookie = "cpk_inspector_notifications_v1=; Path=/; Max-Age=0";
   vi.clearAllMocks();
 });
@@ -192,4 +193,72 @@ test("runtime targeting remains quiet until confirmed metadata arrives", async (
     inspector.shadowRoot?.querySelector("[data-cpk-hud-news]"),
   ).not.toBeNull();
   expect(loadNotificationFeed).toHaveBeenCalledTimes(1);
+});
+
+test("Home previews the active notice after reading a different article", async () => {
+  const inspector = await mount();
+  inspector.openInspector("floating_button");
+  await inspector.updateComplete;
+  inspector.shadowRoot
+    ?.querySelector<HTMLButtonElement>('[data-inspector-menu-key="whats-new"]')
+    ?.click();
+  await inspector.updateComplete;
+  const row = [
+    ...inspector.shadowRoot!.querySelectorAll<HTMLButtonElement>(
+      ".cpk-notification-row",
+    ),
+  ].find((b) => b.textContent?.includes("Another update"))!;
+  row.click();
+  await inspector.updateComplete;
+  inspector.shadowRoot
+    ?.querySelector<HTMLButtonElement>('[data-inspector-menu-key="home"]')
+    ?.click();
+  await inspector.updateComplete;
+  const preview = inspector.shadowRoot!.querySelector<HTMLButtonElement>(
+    "[data-inspector-whats-new-preview]",
+  )!;
+  expect(preview.textContent).toContain("Update CopilotKit");
+  expect(preview.textContent).not.toContain("Another update");
+  preview.click();
+  await inspector.updateComplete;
+  expect(
+    inspector.shadowRoot!.querySelector(".inspector-whats-new-document h1")
+      ?.textContent,
+  ).toBe("Update CopilotKit");
+});
+
+test("clearing the core removes runtime-targeted notices and reconnecting restores them", async () => {
+  vi.mocked(loadNotificationFeed).mockResolvedValueOnce({
+    ...feed,
+    cohorts: [
+      ...feed.cohorts,
+      {
+        id: "intelligence",
+        name: "Intelligence",
+        description: "Confirmed runtime",
+        conditions: { intelligence: "enabled" },
+      },
+    ],
+    notifications: [
+      { ...feed.notifications[0]!, cohorts: ["intelligence"] },
+      feed.notifications[1]!,
+    ],
+  });
+  const core = new NotificationCore({ deferInitialConnection: true });
+  const inspector = await mount(true, core);
+  await core.confirm("intelligence");
+  await inspector.updateComplete;
+  expect(loadNotificationState().eligibleIds).toContain("high");
+  inspector.core = null;
+  await inspector.updateComplete;
+  expect(loadNotificationState().eligibleIds).toEqual(["low"]);
+  await openHud(inspector);
+  expect(
+    inspector.shadowRoot?.querySelector("[data-cpk-hud-news]")?.textContent ??
+      "",
+  ).not.toContain("Update CopilotKit");
+  inspector.core = core;
+  await core.confirm("intelligence");
+  await inspector.updateComplete;
+  expect(loadNotificationState().eligibleIds).toContain("high");
 });

@@ -1067,6 +1067,7 @@ export function clearThreadsStateLabNotificationState(
   localStorage.removeItem(ANNOUNCEMENT_READ_STORAGE_KEY);
   localStorage.removeItem(INSPECTOR_DISMISSAL_STORAGE_KEY);
   sessionStorage.removeItem(ANNOUNCEMENT_PULSED_SESSION_KEY);
+  sessionStorage.removeItem("cpk:inspector:notification-pulsed-id");
   cookieTarget.cookie = `${ANNOUNCEMENT_READ_COOKIE_NAME}=; Path=/; Max-Age=0; SameSite=Lax`;
   cookieTarget.cookie = `${INSPECTOR_DISMISSAL_COOKIE_NAME}=; Path=/; Max-Age=0; SameSite=Lax`;
 }

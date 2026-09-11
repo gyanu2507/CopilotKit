@@ -528,3 +528,33 @@ export function saveNotificationState(state: NotificationState): void {
     writeCookie(NOTIFICATION_COOKIE, raw, "Max-Age=31536000");
   else writeCookie(NOTIFICATION_COOKIE, "", "Max-Age=0");
 }
+
+/** ID-based pulse state is separate from the legacy announcement timestamp. */
+const NOTIFICATION_PULSED_SESSION_KEY = "cpk:inspector:notification-pulsed-id";
+export function saveNotificationPulsedId(id: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(NOTIFICATION_PULSED_SESSION_KEY, id);
+  } catch {
+    /* A lost suppression must not disrupt the host. */
+  }
+}
+export function hasNotificationPulsed(
+  id: string,
+  publishedAt: string,
+): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const current = window.sessionStorage.getItem(
+      NOTIFICATION_PULSED_SESSION_KEY,
+    );
+    if (current !== null) return current === id;
+    if (loadAnnouncementPulsedTimestamp() === publishedAt) {
+      saveNotificationPulsedId(id);
+      return true;
+    }
+  } catch {
+    /* Treat unavailable storage as a fresh tab. */
+  }
+  return false;
+}

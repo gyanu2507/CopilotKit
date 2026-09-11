@@ -2812,7 +2812,7 @@ small.inspector-system-health-detail {
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: currentColor;
+  background: currentcolor;
 }
 
 .cpk-notification-chevron,

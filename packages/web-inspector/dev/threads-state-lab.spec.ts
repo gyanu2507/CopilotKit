@@ -1283,7 +1283,10 @@ test("builds a clean launcher-notification replay", () => {
     "cpk:inspector:announcement_read",
     "cpk:inspector:dismissed_until",
   ]);
-  expect(sessionRemoved).toEqual(["cpk:inspector:pulsed"]);
+  expect(sessionRemoved).toEqual([
+    "cpk:inspector:pulsed",
+    "cpk:inspector:notification-pulsed-id",
+  ]);
   expect(expiredCookies).toEqual([
     "cpk_inspector_notifications_v1=; Path=/; Max-Age=0; SameSite=Lax",
     "cpk_inspector_announcements=; Path=/; Max-Age=0; SameSite=Lax",

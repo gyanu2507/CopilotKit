@@ -40,7 +40,7 @@ const RUNTIME_URL = "https://runtime.error-signal.test";
 const AGENT_ID = "error-signal-agent";
 const ANNOUNCEMENT_URL = "https://cdn.copilotkit.ai/notifications/v1.json";
 const INSPECTOR_STATE_KEY = "cpk:inspector:state";
-const PULSED_SESSION_KEY = "cpk:inspector:pulsed";
+const PULSED_SESSION_KEY = "cpk:inspector:notification-pulsed-id";
 const TIMESTAMP = "2026-08-01T09:00:00.000Z";
 
 // The contract, not an implementation detail: an error beats faster than

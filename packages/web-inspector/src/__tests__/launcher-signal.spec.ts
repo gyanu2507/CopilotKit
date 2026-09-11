@@ -29,7 +29,7 @@ import { WebInspectorElement } from "../index.js";
 const ANNOUNCEMENT_URL = "https://cdn.copilotkit.ai/notifications/v1.json";
 const INSPECTOR_STATE_KEY = "cpk:inspector:state";
 const LEGACY_ANNOUNCEMENT_KEY = "cpk:inspector:announcements";
-const PULSED_SESSION_KEY = "cpk:inspector:pulsed";
+const PULSED_SESSION_KEY = "cpk:inspector:notification-pulsed-id";
 const READ_COOKIE_NAME = "cpk_inspector_notifications_v1";
 const DISMISSAL_COOKIE_NAME = "cpk_inspector_dismissed_until";
 const DAY_MS = 24 * 60 * 60 * 1000;

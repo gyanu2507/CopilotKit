@@ -11,6 +11,10 @@ test("fetches once per page and shares the validated result", async () => {
       await Promise.all([loadNotificationFeed(), loadNotificationFeed()]),
     ).toEqual([feed, feed]);
     expect(request).toHaveBeenCalledTimes(1);
+    expect(request).toHaveBeenCalledWith(
+      "https://cdn.copilotkit.ai/notifications/v1.json",
+      expect.any(Object),
+    );
   } finally {
     vi.unstubAllGlobals();
   }
@@ -20,7 +24,7 @@ test.each(["malformed", "network", "status"])(
   "quietly caches a %s failure",
   async (failure) => {
     vi.resetModules();
-    const request = vi.fn(async () => {
+    const request = vi.fn(async (_input: unknown) => {
       if (failure === "network") throw new Error("offline");
       return new Response("{}", { status: failure === "status" ? 500 : 200 });
     });
@@ -31,6 +35,11 @@ test.each(["malformed", "network", "status"])(
       expect(await loadNotificationFeed()).toBeNull();
       expect(await loadNotificationFeed()).toBeNull();
       expect(request).toHaveBeenCalledTimes(1);
+      expect(
+        request.mock.calls.every(
+          (call) => !String(call[0]).includes("announcements.json"),
+        ),
+      ).toBe(true);
     } finally {
       vi.unstubAllGlobals();
     }

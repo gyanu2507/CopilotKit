@@ -105,6 +105,11 @@ The Inspector remembers your choices on the current host; if cookies are blocked
 falls back to storage for the current origin. Updates load once per page and do not poll.
 Production, server rendering, and disabled Inspectors do not fetch notifications.
 
+The cohort-capable Inspector reads only the versioned notification feed. Older SDK
+releases continue reading the separate legacy `announcements.json` feed. A legacy
+announcement reaches those older clients without cohort targeting; it is not a
+fallback for the updated Inspector when the cohort feed is empty or unavailable.
+
 ## Follow a run from input to result
 
 Send a message in your application, then use these views to answer the next

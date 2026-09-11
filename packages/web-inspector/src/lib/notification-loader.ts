@@ -4,7 +4,9 @@ import type { NotificationFeed } from "./notifications.js";
 export const NOTIFICATION_FEED_URL =
   "https://cdn.copilotkit.ai/notifications/v1.json";
 let request: Promise<NotificationFeed | null> | undefined;
-/** Share one request per page; failures stay quiet until the next page load. */
+/** New SDKs read only cohorts; announcements.json remains the older SDK channel.
+ * Share one request per page; failures stay quiet rather than falling back to legacy.
+ */
 export function loadNotificationFeed(): Promise<NotificationFeed | null> {
   if (typeof window === "undefined" || typeof fetch === "undefined")
     return Promise.resolve(null);

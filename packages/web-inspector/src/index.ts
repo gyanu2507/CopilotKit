@@ -76,9 +76,9 @@ import {
   clearLegacyAnnouncementReadState,
   INSPECTOR_DISMISSAL_MAX_DURATION_MS,
   loadInspectorDismissedUntil,
-  loadAnnouncementPulsedTimestamp,
   loadInspectorState,
-  saveAnnouncementPulsedTimestamp,
+  hasNotificationPulsed,
+  saveNotificationPulsedId,
   saveInspectorDismissedUntil,
   saveInspectorState,
   isValidAnchor,
@@ -6693,6 +6693,7 @@ export class WebInspectorElement extends LitElement {
   private selectedNotificationId: string | null = null;
   private announcementHtml: string | null = null;
   private announcementMarkdown: string | null = null;
+  private announcementId: string | null = null;
   private announcementTimestamp: string | null = null;
   private announcementPreviewText: string | null = null;
   private announcementLoaded = false;
@@ -6787,6 +6788,7 @@ export class WebInspectorElement extends LitElement {
   private viewedNewsSignalIds: Set<string> = new Set();
   private pendingNewsSignalViewed: {
     banner_id: string;
+    notification_id?: string;
     surface: "launcher";
     presentation: WhatsNewSignalPresentation;
     cta_label?: string;
@@ -6808,6 +6810,7 @@ export class WebInspectorElement extends LitElement {
   // before the first impression has flushed.
   private pendingBannerViewed: Array<{
     banner_id: string;
+    notification_id?: string;
     surface: WhatsNewSurface;
     cta_label?: string;
   }> = [];
@@ -11451,7 +11454,7 @@ export class WebInspectorElement extends LitElement {
   }
 
   protected updated(changed: Map<string, unknown>): void {
-    if (changed.has("notificationContext")) {
+    if (changed.has("notificationContext") || changed.has("core")) {
       this.ensureAnnouncementLoading();
       this.refreshNotifications();
     }
@@ -12543,6 +12546,9 @@ export class WebInspectorElement extends LitElement {
 
   private getHomeModel(): HomeModel {
     const lastRuntimeEvent = this.flattenedEvents[0];
+    const activeNotice = this.notificationFeed?.notifications.find(
+      (notice) => notice.id === this.notificationState.activeId,
+    );
     return buildHomeModel({
       intelligenceConnected: Boolean(this._core?.intelligence),
       threadsAvailable: this.areThreadEndpointsAvailable(),
@@ -12568,9 +12574,11 @@ export class WebInspectorElement extends LitElement {
       suggestionsOn: this._core?.suggestions === true,
       audioOn: this._core?.audioFileTranscriptionEnabled === true,
       websocketUrl: this._core?.intelligence?.wsUrl,
-      announcementPreviewText: this.announcementPreviewText ?? undefined,
-      announcementMarkdown: this.announcementMarkdown ?? undefined,
-      announcementHtml: this.announcementHtml ?? undefined,
+      announcementPreviewText: activeNotice?.title,
+      announcementMarkdown: activeNotice?.body,
+      announcementHtml: activeNotice
+        ? this.notificationDocuments.get(activeNotice.id)
+        : undefined,
       intelligenceSignupUrl: this.getIntelligenceSignupUrl(),
     });
   }
@@ -17195,13 +17203,14 @@ export class WebInspectorElement extends LitElement {
     ) {
       return;
     }
-    const id = this.announcementTimestamp;
+    const id = this.announcementId;
     if (!id) return;
     const key = `${id}:${opts.cta}`;
     if (this.clickedBannerIds.has(key)) return;
     this.clickedBannerIds.add(key);
     trackWhatsNewClicked({
-      banner_id: id,
+      banner_id: "notice-" + Date.parse(this.announcementTimestamp!),
+      notification_id: id,
       cta: opts.cta,
     });
   }
@@ -21217,8 +21226,8 @@ export class WebInspectorElement extends LitElement {
     // deferred beat unfired.
     if (isWiringErrorKey(key)) {
       this.errorBeatSpent = true;
-    } else if (this.announcementTimestamp && key === NEWS_SIGNAL_ID) {
-      saveAnnouncementPulsedTimestamp(this.announcementTimestamp);
+    } else if (this.notificationState.activeId && key === NEWS_SIGNAL_ID) {
+      saveNotificationPulsedId(this.notificationState.activeId);
     }
     this.beginGestureTail(key);
     this.requestUpdate();
@@ -21632,11 +21641,15 @@ export class WebInspectorElement extends LitElement {
     ) {
       return;
     }
-    const id = this.announcementTimestamp;
+    const notice = this.notificationFeed?.notifications.find(
+      (n) => n.id === this.notificationState.activeId,
+    );
+    const id = notice?.id;
     if (!id || this.viewedNewsSignalIds.has(id)) return;
     this.viewedNewsSignalIds.add(id);
     this.pendingNewsSignalViewed = {
-      banner_id: id,
+      banner_id: "notice-" + Date.parse(notice!.publishedAt),
+      notification_id: id,
       surface: "launcher",
       presentation:
         typeof window !== "undefined" &&
@@ -21697,7 +21710,7 @@ export class WebInspectorElement extends LitElement {
    * currently visible, once per announcement per surface.
    */
   private maybeTrackWhatsNewViewed(): void {
-    const id = this.announcementTimestamp;
+    const id = this.announcementId;
     if (!id) return;
     const surface = this.getVisibleBannerSurface();
     if (!surface) return;
@@ -21706,7 +21719,8 @@ export class WebInspectorElement extends LitElement {
     if (this.pendingBannerViewed.length >= MAX_PENDING_BANNER_VIEWED) return;
     this.viewedBannerSurfaces.add(key);
     this.pendingBannerViewed.push({
-      banner_id: id,
+      banner_id: "notice-" + Date.parse(this.announcementTimestamp!),
+      notification_id: id,
       surface,
     });
     this.flushPendingWhatsNewTelemetry();
@@ -21840,7 +21854,8 @@ export class WebInspectorElement extends LitElement {
       this.notificationFeed.notifications
         .filter((n) => this.notificationState.eligibleIds.includes(n.id))
         .sort(compareNotifications)[0];
-    this.announcementTimestamp = notice?.id ?? null;
+    this.announcementId = notice?.id ?? null;
+    this.announcementTimestamp = notice?.publishedAt ?? null;
     this.announcementPreviewText = notice?.title ?? null;
     this.announcementMarkdown = notice?.body ?? null;
     this.announcementHtml = notice
@@ -21855,7 +21870,12 @@ export class WebInspectorElement extends LitElement {
       this.armNewsSignal({
         pulse:
           previousActiveId !== this.notificationState.activeId &&
-          loadAnnouncementPulsedTimestamp() !== this.notificationState.activeId,
+          !hasNotificationPulsed(
+            this.notificationState.activeId,
+            this.notificationFeed.notifications.find(
+              (n) => n.id === this.notificationState.activeId,
+            )!.publishedAt,
+          ),
       });
     else {
       this.newsSignalArmed = false;

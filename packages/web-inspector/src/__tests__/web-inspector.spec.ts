@@ -3676,8 +3676,12 @@ describe("WebInspectorElement memories — view states", () => {
     expect(landing?.textContent).toContain(
       "Turn every interaction into reusable context.",
     );
+    // The Learning pane asks for Learning. It used to borrow the Threads
+    // target, so this button copied a Threads prompt and announced itself as
+    // one, on a page headed "Turn every interaction into reusable context"
+    // (OSS-1151).
     const copy = landing?.querySelector<HTMLButtonElement>(
-      '[data-inspector-feature-setup-prompt="threads"]',
+      '[data-inspector-feature-setup-prompt="memory"]',
     );
     expect(copy).not.toBeNull();
     copy?.click();
@@ -3689,6 +3693,13 @@ describe("WebInspectorElement memories — view states", () => {
         agentId: null,
       });
     });
+    // What the developer actually pastes. `add-learning` refuses cleanly
+    // through `feature/stop` when a prerequisite is missing, which is why the
+    // route beats this pane guessing at one.
+    expect(String(writeText.mock.calls[0]?.[0])).toContain(
+      "--intent add-learning",
+    );
+    expect(copy?.getAttribute("aria-label")).toContain("Learning");
     expect(internals.selectedMenu).toBe("memories");
     await el.updateComplete;
     const view = el.shadowRoot?.querySelector<HTMLElement>("cpk-learning-view");
@@ -3705,6 +3716,43 @@ describe("WebInspectorElement memories — view states", () => {
     expect(
       view?.shadowRoot?.querySelector(".step")?.classList.contains("complete"),
     ).toBe(true);
+
+    const timeoutSpy = vi.spyOn(globalThis, "setTimeout");
+    view?.shadowRoot?.querySelector<HTMLButtonElement>(".copy-again")?.click();
+    await vi.waitFor(() => expect(writeText).toHaveBeenCalledTimes(2));
+    await vi.waitFor(() => {
+      const updatedView =
+        el.shadowRoot?.querySelector<HTMLElement>("cpk-learning-view");
+      expect(
+        updatedView?.shadowRoot?.querySelector<HTMLButtonElement>(".copy-again")
+          ?.textContent,
+      ).toContain("Copied!");
+    });
+    const resetCallIndex = timeoutSpy.mock.calls.findIndex(
+      ([, delay]) => delay === 2_000,
+    );
+    const resetCall = timeoutSpy.mock.calls[resetCallIndex];
+    expect(resetCall).toBeDefined();
+    (resetCall?.[0] as () => void)();
+    clearTimeout(timeoutSpy.mock.results[resetCallIndex]?.value);
+    await vi.waitFor(() => {
+      const updatedView =
+        el.shadowRoot?.querySelector<HTMLElement>("cpk-learning-view");
+      expect(
+        updatedView?.shadowRoot?.querySelector<HTMLButtonElement>(".copy-again")
+          ?.textContent,
+      ).toContain("Copy prompt again");
+    });
+    timeoutSpy.mockRestore();
+
+    view?.shadowRoot
+      ?.querySelector<HTMLButtonElement>(".pane-actions button")
+      ?.click();
+    await el.updateComplete;
+    expect(internals.learningSetupMarker).toBeNull();
+    expect(learningPreview(el)?.textContent).toContain(
+      "Turn every interaction into reusable context.",
+    );
   });
 
   it("keeps all-agents Learning unscoped when several agents are present", () => {
@@ -3952,7 +4000,7 @@ describe("WebInspectorElement memories — view states", () => {
     const preview = learningPreview(el);
 
     expect(
-      preview.querySelector('[data-inspector-feature-setup-prompt="threads"]'),
+      preview.querySelector('[data-inspector-feature-setup-prompt="memory"]'),
     ).not.toBeNull();
     expect(preview.textContent).toContain("Copy setup prompt");
   });

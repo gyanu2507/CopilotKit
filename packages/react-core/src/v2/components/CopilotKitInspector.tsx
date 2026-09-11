@@ -6,17 +6,22 @@ import type { CopilotKitInspectorOpenRequest } from "./CopilotKitInspectorContex
 
 export interface CopilotKitInspectorProps {
   core?: CopilotKitCore | null;
+  onVisibilityChange?: (visible: boolean) => void;
   openRequest?: CopilotKitInspectorOpenRequest | null;
 }
 
 export const CopilotKitInspector: React.FC<CopilotKitInspectorProps> = ({
   core,
   openRequest,
+  onVisibilityChange,
 }) => {
   const mountRef = React.useRef<HTMLSpanElement | null>(null);
   const inspectorRef = React.useRef<WebInspectorElement | null>(null);
   const latestCoreRef = React.useRef(core ?? null);
   const latestOpenRequestRef = React.useRef(openRequest);
+
+  const visibilityCallbackRef = React.useRef(onVisibilityChange);
+  visibilityCallbackRef.current = onVisibilityChange;
 
   latestCoreRef.current = core ?? null;
   latestOpenRequestRef.current = openRequest;
@@ -24,6 +29,12 @@ export const CopilotKitInspector: React.FC<CopilotKitInspectorProps> = ({
   React.useEffect(() => {
     let mounted = true;
     let inspector: WebInspectorElement | null = null;
+
+    const handleVisibilityChange = (event: Event) => {
+      const visible = (event as CustomEvent<{ visible: boolean }>).detail
+        ?.visible;
+      visibilityCallbackRef.current?.(visible === true);
+    };
 
     // Load the web component only on the client to keep SSR output stable.
     void import("@copilotkit/web-inspector")
@@ -40,6 +51,10 @@ export const CopilotKitInspector: React.FC<CopilotKitInspectorProps> = ({
           sdkVersion: packageInfo.version,
         });
 
+        inspector.addEventListener(
+          "cpk-inspector-visibility-change",
+          handleVisibilityChange,
+        );
         mountRef.current.appendChild(inspector);
         inspectorRef.current = inspector;
 
@@ -54,7 +69,12 @@ export const CopilotKitInspector: React.FC<CopilotKitInspectorProps> = ({
 
     return () => {
       mounted = false;
+      inspector?.removeEventListener(
+        "cpk-inspector-visibility-change",
+        handleVisibilityChange,
+      );
       inspector?.remove();
+      visibilityCallbackRef.current?.(false);
       if (inspectorRef.current === inspector) {
         inspectorRef.current = null;
       }
